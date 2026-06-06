@@ -1,0 +1,75 @@
+name: Feth-i Alem APK Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Java kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+
+      - name: Godot 4 indir
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
+          chmod +x Godot_v4.2.2-stable_linux.x86_64
+          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
+
+      - name: Export templates indir
+        run: |
+          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
+          unzip -q Godot_v4.2.2-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
+
+      - name: Keystore oluştur
+        run: |
+          keytool -genkey -v \
+            -keystore debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+
+      - name: Export preset oluştur
+        run: |
+          cat > export_presets.cfg << 'EOF'
+          [preset.0]
+          name="Android"
+          platform="Android"
+          runnable=true
+          export_path="FethiAlem.apk"
+          [preset.0.options]
+          architectures/arm64-v8a=true
+          keystore/debug="debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
+          package/unique_name="com.fethialem.game"
+          package/name="Feth-i Alem"
+          EOF
+
+      - name: APK derle
+        run: godot --headless --export-debug "Android" FethiAlem.apk
+
+      - name: APK kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: FethiAlem-APK
+          path: FethiAlem.apk
+          retention-days: 30

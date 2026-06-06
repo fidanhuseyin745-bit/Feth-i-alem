@@ -18,7 +18,7 @@ jobs:
         with:
           packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34'
 
-      - name: Godot 4.3
+      - name: Godot
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip && chmod +x Godot_v4.3-stable_linux.x86_64
@@ -28,12 +28,15 @@ jobs:
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/t.tpz
-          unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/ && ls -la ~/.local/share/godot/export_templates/4.3.stable/
+          unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
       - name: Keystore
         run: keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: export_presets
+      - name: Sil eski export_presets
+        run: rm -f export_presets.cfg
+
+      - name: Yeni export_presets
         run: |
           cat > export_presets.cfg << 'EOF'
           [preset.0]
@@ -41,6 +44,8 @@ jobs:
           platform="Android"
           runnable=true
           export_filter="all_resources"
+          include_filter=""
+          exclude_filter=""
           export_path="FethiAlem.apk"
           
           [preset.0.options]
@@ -54,12 +59,13 @@ jobs:
           version/name="0.1"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
+          permissions/internet=true
           EOF
 
       - name: Settings
         run: |
-          JAVA_PATH="$JAVA_HOME_17"
           mkdir -p ~/.config/godot
+          JAVA_PATH="$JAVA_HOME_17"
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
           [resource]

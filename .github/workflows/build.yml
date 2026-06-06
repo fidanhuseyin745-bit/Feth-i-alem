@@ -1,4 +1,5 @@
 name: Feth-i Alem APK Build
+
 on:
   push:
     branches: [ main ]
@@ -6,35 +7,35 @@ on:
 
 jobs:
   build-android:
-    runs-on: ubuntu-latest
-    container:
-      image: barichello/godot-ci:4.2.2
+    runs-on: ubuntu-22.04
     steps:
       - name: Kodu indir
         uses: actions/checkout@v4
 
-      - name: Build tools kur
-        run: |
-          yes | sdkmanager "build-tools;33.0.2" "platforms;android-33"
+      - name: Java kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
 
-      - name: Ayarları hazırla
+      - name: Android SDK kur
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33'
+
+      - name: Godot 4 indir
         run: |
-          mkdir -p ~/.config/godot
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
+          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
+          chmod +x Godot_v4.2.2-stable_linux.x86_64
+          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
+
+      - name: Export templates indir
+        run: |
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          cp /root/.local/share/godot/export_templates/4.2.2.stable/* \
-            ~/.local/share/godot/export_templates/4.2.2.stable/
-
-          JAVA_PATH=$(dirname $(dirname $(readlink -f $(which java))))
-
-          cat > ~/.config/godot/editor_settings-4.tres << EOF
-          [gd_resource type="EditorSettings" format=3]
-          [resource]
-          export/android/android_sdk_path = "/usr/lib/android-sdk"
-          export/android/debug_keystore = "$(pwd)/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          export/android/java_sdk_path = "$JAVA_PATH"
-          EOF
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
+          unzip -q Godot_v4.2.2-stable_export_templates.tpz
+          mv templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
 
       - name: Keystore oluştur
         run: |
@@ -47,10 +48,27 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Export preset oluştur
+      - name: Ayarları hazırla
         run: |
-          cat > export_presets.cfg << 'EOF'
+          mkdir -p ~/.config/godot
+          JAVA_HOME_PATH=$(dirname $(dirname $(readlink -f $(which java))))
+          SDK_ROOT="$ANDROID_SDK_ROOT"
+          KS_PATH="$(pwd)/debug.keystore"
+
+          cat > ~/.config/godot/editor_settings-4.tres << EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$SDK_ROOT"
+          export/android/debug_keystore = "$KS_PATH"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/java_sdk_path = "$JAVA_HOME_PATH"
+          EOF
+
+          cat > export_presets.cfg << EOF
           [preset.0]
+
           name="Android"
           platform="Android"
           runnable=true
@@ -60,12 +78,14 @@ jobs:
           export_path="FethiAlem.apk"
           encrypt_pck=false
           encrypt_directory=false
+
           [preset.0.options]
+
           architectures/arm64-v8a=true
           architectures/armeabi-v7a=false
           architectures/x86=false
           architectures/x86_64=false
-          keystore/debug="debug.keystore"
+          keystore/debug="$KS_PATH"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           package/unique_name="com.fethialem.game"

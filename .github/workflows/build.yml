@@ -18,12 +18,32 @@ jobs:
         run: |
           mkdir -p ~/.config/godot
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-
           cp /root/.local/share/godot/export_templates/4.2.2.stable/* \
             ~/.local/share/godot/export_templates/4.2.2.stable/
+          
+          JAVA_PATH=$(dirname $(dirname $(readlink -f $(which java))))
+          SDK_PATH="/usr/lib/android-sdk"
+          
+          cat > ~/.config/godot/editor_settings-4.tres << EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$SDK_PATH"
+          export/android/debug_keystore = "$(pwd)/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/java_sdk_path = "$JAVA_PATH"
+          EOF
 
-          cp /root/.config/godot/editor_settings-4.tres \
-            ~/.config/godot/editor_settings-4.tres
+      - name: Keystore oluştur
+        run: |
+          keytool -genkey -v \
+            -keystore debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Export preset oluştur
         run: |
@@ -40,8 +60,15 @@ jobs:
           encrypt_directory=false
           [preset.0.options]
           architectures/arm64-v8a=true
+          architectures/armeabi-v7a=false
+          architectures/x86=false
+          architectures/x86_64=false
+          keystore/debug="debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
+          package/signed=true
           version/code=1
           version/name="0.1"
           EOF

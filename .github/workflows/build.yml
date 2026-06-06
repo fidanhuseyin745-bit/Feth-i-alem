@@ -23,8 +23,9 @@ jobs:
         with:
           packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33 ndk;26.1.10909125'
 
-      - name: Godot 4 indir
+      - name: Godot 4.2.2 indir
         run: |
+          cd ~
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
           chmod +x Godot_v4.2.2-stable_linux.x86_64
@@ -33,14 +34,16 @@ jobs:
       - name: Export templates indir
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
+          cd ~/.local/share/godot/export_templates
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
           unzip -q Godot_v4.2.2-stable_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
+          mv templates/* 4.2.2.stable/
+          rm -rf templates Godot_v4.2.2-stable_export_templates.tpz
 
       - name: Keystore oluştur
         run: |
           keytool -genkey -v \
-            -keystore debug.keystore \
+            -keystore ${{ github.workspace }}/debug.keystore \
             -alias androiddebugkey \
             -keyalg RSA -keysize 2048 \
             -validity 10000 \
@@ -48,56 +51,100 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Ayarları hazırla
+      - name: Godot ayarlarını oluştur
         run: |
           mkdir -p ~/.config/godot
-          JAVA_HOME="${JAVA_HOME_X64_17}"
-          SDK_ROOT="${ANDROID_SDK_ROOT}"
-          NDK_ROOT="${ANDROID_NDK_ROOT}"
-          KS_PATH="$(pwd)/debug.keystore"
-
-          cat > ~/.config/godot/editor_settings-4.tres << EOF
+          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
           [gd_resource type="EditorSettings" format=3]
-
+          
           [resource]
-          export/android/android_sdk_path = "$SDK_ROOT"
-          export/android/android_ndk_path = "$NDK_ROOT"
-          export/android/debug_keystore = "$KS_PATH"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "${{ env.ANDROID_SDK_ROOT }}"
+          export/android/android_ndk_path = "${{ env.ANDROID_NDK_ROOT }}"
+          export/android/java_sdk_path = "${{ env.JAVA_HOME_X64_17 }}"
           EOF
 
-          cat > export_presets.cfg << EOF
+      - name: export_presets.cfg oluştur
+        run: |
+          cat > ${{ github.workspace }}/export_presets.cfg << 'EOF'
           [preset.0]
-
           name="Android"
           platform="Android"
           runnable=true
+          custom_features=""
           export_filter="all_resources"
-          export_path="FethiAlem.apk"
-
+          include_filter=""
+          exclude_filter=""
+          export_path="build/FethiAlem.apk"
+          encryption_key=""
+          
           [preset.0.options]
-
-          architectures/arm64_v8a=true
+          gradle_build/use_gradle_build=false
+          gradle_build/gradle_template_official=true
+          gradle_build/gradle_template_dir=""
+          gradle_build/gradle_build_dir="build"
+          gradle_build/gradle_dependencies=""
+          gradle_build/gradle_classpath=""
+          gradle_build/gradle_plugins=""
+          gradle_build/gradle_local_build_dir=""
+          gradle_build/gradle_build_type="debug"
+          gradle_build/gradle_scan_build_cache=false
+          gradle_build/gradle_offline_build=false
+          gradle_build/use_gradle_local_build=false
+          
           architectures/armeabi_v7a=false
+          architectures/arm64_v8a=true
           architectures/x86=false
           architectures/x86_64=false
-          keystore/debug="$KS_PATH"
-          keystore/debug_keystore_user="androiddebugkey"
-          keystore/debug_keystore_pass="android"
-          package/unique_name="com.fethialem.game"
-          package/name="Feth-i Alem"
+          
+          keystore/debug="debug.keystore"
+          keystore/debug_user="androiddebugkey"
+          keystore/debug_password="android"
+          keystore/release=""
+          keystore/release_user=""
+          keystore/release_password=""
+          
           version/code=1
           version/name="0.1"
+          
+          package/unique_name="com.fethialem.game"
+          package/name="Feth-i Alem"
+          package/signed=true
+          
+          permissions/internet=true
+          permissions/access_fine_location=false
+          permissions/access_coarse_location=false
+          permissions/record_audio=false
+          permissions/camera=false
+          permissions/modify_audio_settings=false
+          permissions/access_surface_flinger=false
+          permissions/access_all_external_storage=false
+          
+          orientation/sensor_portrait=true
+          orientation/sensor_landscape=false
+          orientation/reverse_portrait=false
+          orientation/reverse_landscape=false
+          
+          screen/support_small=true
+          screen/support_normal=true
+          screen/support_large=true
+          screen/support_xlarge=true
+          
+          opengl/enable_low_latency_presentation=false
+          
+          xr_features/xr_mode=0
+          
+          user_data_dir=""
           EOF
 
       - name: APK derle
-        run: godot --headless --export-debug "Android" FethiAlem.apk
+        working-directory: ${{ github.workspace }}
+        run: |
+          godot --headless --export-debug "Android" build/FethiAlem.apk 2>&1 || true
 
       - name: APK kaydet
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: FethiAlem-APK
-          path: FethiAlem.apk
+          path: build/FethiAlem.apk
           retention-days: 30

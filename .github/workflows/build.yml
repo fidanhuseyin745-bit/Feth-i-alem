@@ -21,7 +21,7 @@ jobs:
       - name: Android SDK kur
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33 ndk;26.1.10909125'
+          packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33'
 
       - name: Godot 4.2.2 indir
         run: |
@@ -37,8 +37,8 @@ jobs:
           cd ~/.local/share/godot/export_templates
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
           unzip -q Godot_v4.2.2-stable_export_templates.tpz
-          mv templates/* 4.2.2.stable/
-          rm -rf templates Godot_v4.2.2-stable_export_templates.tpz
+          mv templates/* 4.2.2.stable/ || true
+          rm -rf templates Godot_v4.2.2-stable_export_templates.tpz || true
 
       - name: Keystore oluştur
         run: |
@@ -51,18 +51,6 @@ jobs:
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Godot ayarlarını oluştur
-        run: |
-          mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
-          [gd_resource type="EditorSettings" format=3]
-          
-          [resource]
-          export/android/android_sdk_path = "${{ env.ANDROID_SDK_ROOT }}"
-          export/android/android_ndk_path = "${{ env.ANDROID_NDK_ROOT }}"
-          export/android/java_sdk_path = "${{ env.JAVA_HOME_X64_17 }}"
-          EOF
-
       - name: export_presets.cfg oluştur
         run: |
           cat > ${{ github.workspace }}/export_presets.cfg << 'EOF'
@@ -74,22 +62,11 @@ jobs:
           export_filter="all_resources"
           include_filter=""
           exclude_filter=""
-          export_path="build/FethiAlem.apk"
+          export_path="FethiAlem.apk"
           encryption_key=""
           
           [preset.0.options]
           gradle_build/use_gradle_build=false
-          gradle_build/gradle_template_official=true
-          gradle_build/gradle_template_dir=""
-          gradle_build/gradle_build_dir="build"
-          gradle_build/gradle_dependencies=""
-          gradle_build/gradle_classpath=""
-          gradle_build/gradle_plugins=""
-          gradle_build/gradle_local_build_dir=""
-          gradle_build/gradle_build_type="debug"
-          gradle_build/gradle_scan_build_cache=false
-          gradle_build/gradle_offline_build=false
-          gradle_build/use_gradle_local_build=false
           
           architectures/armeabi_v7a=false
           architectures/arm64_v8a=true
@@ -111,40 +88,55 @@ jobs:
           package/signed=true
           
           permissions/internet=true
-          permissions/access_fine_location=false
-          permissions/access_coarse_location=false
-          permissions/record_audio=false
-          permissions/camera=false
-          permissions/modify_audio_settings=false
-          permissions/access_surface_flinger=false
-          permissions/access_all_external_storage=false
           
           orientation/sensor_portrait=true
           orientation/sensor_landscape=false
-          orientation/reverse_portrait=false
-          orientation/reverse_landscape=false
           
           screen/support_small=true
           screen/support_normal=true
           screen/support_large=true
           screen/support_xlarge=true
+          EOF
+
+      - name: Godot ayarlarını oluştur
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
+          [gd_resource type="EditorSettings" format=3]
           
-          opengl/enable_low_latency_presentation=false
-          
-          xr_features/xr_mode=0
-          
-          user_data_dir=""
+          [resource]
+          export/android/android_sdk_path = "${{ env.ANDROID_SDK_ROOT }}"
+          export/android/java_sdk_path = "${{ env.JAVA_HOME_X64_17 }}"
           EOF
 
       - name: APK derle
         working-directory: ${{ github.workspace }}
         run: |
-          godot --headless --export-debug "Android" build/FethiAlem.apk 2>&1 || true
+          echo "=== Godot Versiyonu ==="
+          godot --version
+          echo ""
+          echo "=== Java Versiyonu ==="
+          java -version
+          echo ""
+          echo "=== Android SDK Root ==="
+          echo $ANDROID_SDK_ROOT
+          echo ""
+          echo "=== Export Presets ==="
+          cat export_presets.cfg
+          echo ""
+          echo "=== Godot Settings ==="
+          cat ~/.config/godot/editor_settings-4.tres
+          echo ""
+          echo "=== APK Derlemesi Başlıyor ==="
+          godot --headless --export-debug "Android" FethiAlem.apk
+          echo ""
+          echo "=== Derlemeden Sonra Dosyalar ==="
+          ls -la ${{ github.workspace }}/
 
       - name: APK kaydet
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: FethiAlem-APK
-          path: build/FethiAlem.apk
+          path: ${{ github.workspace }}/FethiAlem.apk
           retention-days: 30

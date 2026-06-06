@@ -9,43 +9,39 @@ jobs:
   build-android:
     runs-on: ubuntu-22.04
     steps:
-      - name: Kodu indir
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Java kur
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Android SDK kur
-        uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v3
         with:
           packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33'
 
-      - name: Godot indir
+      - name: Godot + Templates
         run: |
+          cd /tmp
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
           chmod +x Godot_v4.2.2-stable_linux.x86_64
           sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
-
-      - name: Templates indir
-        run: |
+          
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          cd ~/.local/share/godot/export_templates
-          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
-          unzip -q Godot_v4.2.2-stable_export_templates.tpz
-          mv templates/* 4.2.2.stable/
+          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz -O /tmp/templates.tpz
+          cd ~/.local/share/godot/export_templates/4.2.2.stable
+          unzip -q /tmp/templates.tpz
+          ls -la ~/.local/share/godot/export_templates/4.2.2.stable/
 
-      - name: Keystore oluştur
+      - name: Keystore
         run: |
           keytool -genkey -v -keystore debug.keystore \
             -alias androiddebugkey -keyalg RSA -keysize 2048 \
             -validity 10000 -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: export_presets.cfg yaz
+      - name: Preset
         run: |
           cat > export_presets.cfg << 'EOF'
           [preset.0]
@@ -53,18 +49,11 @@ jobs:
           platform="Android"
           runnable=true
           export_filter="all_resources"
-          include_filter=""
-          exclude_filter=""
-          export_path="build/FethiAlem.apk"
+          export_path="FethiAlem.apk"
           
           [preset.0.options]
-          gradle_build/use_gradle_build=true
-          gradle_build/gradle_template_official=true
-          gradle_build/gradle_build_type="debug"
           architectures/arm64_v8a=true
           architectures/armeabi_v7a=false
-          architectures/x86=false
-          architectures/x86_64=false
           keystore/debug="debug.keystore"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
@@ -72,30 +61,23 @@ jobs:
           version/name="0.1"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
-          permissions/internet=true
-          screen/support_small=true
-          screen/support_normal=true
-          screen/support_large=true
-          screen/support_xlarge=true
           EOF
 
-      - name: Godot Settings
+      - name: Settings
         run: |
           mkdir -p ~/.config/godot
-          JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
           [resource]
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/java_sdk_path = "$(dirname $(dirname $(readlink -f $(which java))))"
           EOF
 
-      - name: APK Derle
-        run: godot --headless --export-debug "Android" build/FethiAlem.apk
+      - name: Export
+        run: godot --headless --export-release "Android" FethiAlem.apk
 
-      - name: Artifact Kaydet
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: FethiAlem-APK
-          path: build/FethiAlem.apk
+          path: FethiAlem.apk

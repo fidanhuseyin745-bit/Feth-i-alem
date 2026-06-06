@@ -1,5 +1,4 @@
 name: Feth-i Alem APK Build
-
 on:
   push:
     branches: [ main ]
@@ -14,20 +13,23 @@ jobs:
       - name: Kodu indir
         uses: actions/checkout@v4
 
+      - name: Build tools kur
+        run: |
+          yes | sdkmanager "build-tools;33.0.2" "platforms;android-33"
+
       - name: Ayarları hazırla
         run: |
           mkdir -p ~/.config/godot
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
           cp /root/.local/share/godot/export_templates/4.2.2.stable/* \
             ~/.local/share/godot/export_templates/4.2.2.stable/
-          
+
           JAVA_PATH=$(dirname $(dirname $(readlink -f $(which java))))
-          SDK_PATH="/usr/lib/android-sdk"
-          
+
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
           [resource]
-          export/android/android_sdk_path = "$SDK_PATH"
+          export/android/android_sdk_path = "/usr/lib/android-sdk"
           export/android/debug_keystore = "$(pwd)/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"

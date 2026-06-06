@@ -1,4 +1,3 @@
-
 name: Feth-i Alem APK Build
 
 on:
@@ -34,7 +33,11 @@ jobs:
       - name: Keystore
         run: keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Düzelt export_presets.cfg
+      - name: project.godot düzelt
+        run: |
+          sed -i 's|run/main_scene=.*|run/main_scene="res://scenes/MainMenu.tscn"|g' project.godot || true
+
+      - name: export_presets.cfg
         run: |
           cat > export_presets.cfg << 'EOF'
           [preset.0]
@@ -67,19 +70,12 @@ jobs:
           export/android/android_sdk_path = "'$ANDROID_SDK_ROOT'"
           export/android/java_sdk_path = "$(dirname $(dirname $(readlink -f $(which java))))"' > ~/.config/godot/editor_settings-4.tres
 
-      - name: Debug Info
-        run: |
-          echo "=== Preset Contents ==="
-          cat export_presets.cfg
-          echo ""
-          echo "=== Editor Settings ==="
-          cat ~/.config/godot/editor_settings-4.tres
-
       - name: Export
-        run: godot --headless --verbose --export-debug "Android" FethiAlem.apk 2>&1 | tail -100
+        run: godot --headless --export-debug "Android" FethiAlem.apk
 
       - uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
           name: FethiAlem-APK
           path: FethiAlem.apk
+          retention-days: 30

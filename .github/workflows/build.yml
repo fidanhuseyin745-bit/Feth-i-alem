@@ -23,94 +23,79 @@ jobs:
         with:
           packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33'
 
-      - name: Godot 4.2.2 indir
+      - name: Godot indir
         run: |
-          cd ~
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
           unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
           chmod +x Godot_v4.2.2-stable_linux.x86_64
           sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Export templates indir
+      - name: Templates indir
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
           cd ~/.local/share/godot/export_templates
           wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
           unzip -q Godot_v4.2.2-stable_export_templates.tpz
-          mv templates/* 4.2.2.stable/ || true
+          mv templates/* 4.2.2.stable/
 
       - name: Keystore oluştur
         run: |
-          keytool -genkey -v \
-            -keystore debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
+          keytool -genkey -v -keystore debug.keystore \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 \
+            -validity 10000 -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: export_presets.cfg oluştur
+      - name: export_presets.cfg yaz
         run: |
           cat > export_presets.cfg << 'EOF'
           [preset.0]
           name="Android"
           platform="Android"
           runnable=true
-          custom_features=""
           export_filter="all_resources"
           include_filter=""
           exclude_filter=""
-          export_path="FethiAlem.apk"
-          encryption_key=""
+          export_path="build/FethiAlem.apk"
           
           [preset.0.options]
-          gradle_build/use_gradle_build=false
-          architectures/armeabi_v7a=false
+          gradle_build/use_gradle_build=true
+          gradle_build/gradle_template_official=true
+          gradle_build/gradle_build_type="debug"
           architectures/arm64_v8a=true
+          architectures/armeabi_v7a=false
           architectures/x86=false
           architectures/x86_64=false
           keystore/debug="debug.keystore"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
-          keystore/release=""
-          keystore/release_user=""
-          keystore/release_password=""
           version/code=1
           version/name="0.1"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
-          package/signed=true
           permissions/internet=true
-          orientation/sensor_portrait=true
-          orientation/sensor_landscape=false
           screen/support_small=true
           screen/support_normal=true
           screen/support_large=true
           screen/support_xlarge=true
           EOF
 
-      - name: Godot ayarlarını oluştur
+      - name: Godot Settings
         run: |
           mkdir -p ~/.config/godot
           JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
-          
           [resource]
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
           export/android/java_sdk_path = "$JAVA_HOME"
           EOF
-          cat ~/.config/godot/editor_settings-4.tres
 
-      - name: APK derle
-        run: |
-          cd ${{ github.workspace }}
-          godot --headless --export-debug "Android" FethiAlem.apk
+      - name: APK Derle
+        run: godot --headless --export-debug "Android" build/FethiAlem.apk
 
-      - name: APK kaydet
+      - name: Artifact Kaydet
         uses: actions/upload-artifact@v4
-        if: success()
+        if: always()
         with:
           name: FethiAlem-APK
-          path: ${{ github.workspace }}/FethiAlem.apk
+          path: build/FethiAlem.apk

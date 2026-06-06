@@ -21,7 +21,7 @@ jobs:
       - name: Android SDK kur
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33'
+          packages: 'tools platform-tools build-tools;33.0.2 platforms;android-33 ndk;26.1.10909125'
 
       - name: Godot 4 indir
         run: |
@@ -51,8 +51,9 @@ jobs:
       - name: Ayarları hazırla
         run: |
           mkdir -p ~/.config/godot
-          JAVA_HOME_PATH=$(dirname $(dirname $(readlink -f $(which java))))
-          SDK_ROOT="$ANDROID_SDK_ROOT"
+          JAVA_HOME="${JAVA_HOME_X64_17}"
+          SDK_ROOT="${ANDROID_SDK_ROOT}"
+          NDK_ROOT="${ANDROID_NDK_ROOT}"
           KS_PATH="$(pwd)/debug.keystore"
 
           cat > ~/.config/godot/editor_settings-4.tres << EOF
@@ -60,10 +61,11 @@ jobs:
 
           [resource]
           export/android/android_sdk_path = "$SDK_ROOT"
+          export/android/android_ndk_path = "$NDK_ROOT"
           export/android/debug_keystore = "$KS_PATH"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
-          export/android/java_sdk_path = "$JAVA_HOME_PATH"
+          export/android/java_sdk_path = "$JAVA_HOME"
           EOF
 
           cat > export_presets.cfg << EOF
@@ -73,24 +75,19 @@ jobs:
           platform="Android"
           runnable=true
           export_filter="all_resources"
-          include_filter=""
-          exclude_filter=""
           export_path="FethiAlem.apk"
-          encrypt_pck=false
-          encrypt_directory=false
 
           [preset.0.options]
 
-          architectures/arm64-v8a=true
-          architectures/armeabi-v7a=false
+          architectures/arm64_v8a=true
+          architectures/armeabi_v7a=false
           architectures/x86=false
           architectures/x86_64=false
           keystore/debug="$KS_PATH"
-          keystore/debug_user="androiddebugkey"
-          keystore/debug_password="android"
+          keystore/debug_keystore_user="androiddebugkey"
+          keystore/debug_keystore_pass="android"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
-          package/signed=true
           version/code=1
           version/name="0.1"
           EOF

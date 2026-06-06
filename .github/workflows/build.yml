@@ -28,16 +28,12 @@ jobs:
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/t.tpz
-          unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/ && ls -la ~/.local/share/godot/export_templates/4.3.stable/
 
       - name: Keystore
         run: keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: project.godot düzelt
-        run: |
-          sed -i 's|run/main_scene=.*|run/main_scene="res://scenes/MainMenu.tscn"|g' project.godot || true
-
-      - name: export_presets.cfg
+      - name: export_presets
         run: |
           cat > export_presets.cfg << 'EOF'
           [preset.0]
@@ -49,9 +45,8 @@ jobs:
           
           [preset.0.options]
           gradle_build/use_gradle_build=true
-          gradle_build/gradle_build_type="debug"
-          architectures/armeabi_v7a=false
           architectures/arm64_v8a=true
+          architectures/armeabi_v7a=false
           keystore/debug="debug.keystore"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
@@ -59,16 +54,18 @@ jobs:
           version/name="0.1"
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
-          permissions/internet=true
           EOF
 
       - name: Settings
         run: |
+          JAVA_PATH="$JAVA_HOME_17"
           mkdir -p ~/.config/godot
-          echo '[gd_resource type="EditorSettings" format=3]
+          cat > ~/.config/godot/editor_settings-4.tres << EOF
+          [gd_resource type="EditorSettings" format=3]
           [resource]
-          export/android/android_sdk_path = "'$ANDROID_SDK_ROOT'"
-          export/android/java_sdk_path = "$(dirname $(dirname $(readlink -f $(which java))))"' > ~/.config/godot/editor_settings-4.tres
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_PATH"
+          EOF
 
       - name: Export
         run: godot --headless --export-debug "Android" FethiAlem.apk
@@ -78,4 +75,3 @@ jobs:
         with:
           name: FethiAlem-APK
           path: FethiAlem.apk
-          retention-days: 30

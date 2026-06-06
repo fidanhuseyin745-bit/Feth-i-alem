@@ -8,100 +8,50 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.2.2
     steps:
       - name: Kodu indir
         uses: actions/checkout@v4
 
-      - name: Java kur
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Android SDK kur
-        uses: android-actions/setup-android@v3
-
-      - name: Godot 4 indir
-        run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_linux.x86_64.zip
-          unzip -q Godot_v4.2.2-stable_linux.x86_64.zip
-          chmod +x Godot_v4.2.2-stable_linux.x86_64
-          sudo mv Godot_v4.2.2-stable_linux.x86_64 /usr/local/bin/godot
-
-      - name: Export templates indir
-        run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
-          wget -q https://github.com/godotengine/godot/releases/download/4.2.2-stable/Godot_v4.2.2-stable_export_templates.tpz
-          unzip -q Godot_v4.2.2-stable_export_templates.tpz
-          mv templates/* ~/.local/share/godot/export_templates/4.2.2.stable/
-
-      - name: Keystore oluştur
-        run: |
-          keytool -genkey -v \
-            -keystore /home/runner/work/Feth-i-alem/Feth-i-alem/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 \
-            -validity 10000 \
-            -storepass android \
-            -keypass android \
-            -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Editor ayarları ve preset oluştur
+      - name: Ayarları hazırla
         run: |
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << 'EOF'
-          [gd_resource type="EditorSettings" format=3]
+          mkdir -p ~/.local/share/godot/export_templates/4.2.2.stable
 
-          [resource]
-          export/android/android_sdk_path = "/usr/local/lib/android/sdk"
-          export/android/debug_keystore = "/home/runner/work/Feth-i-alem/Feth-i-alem/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          EOF
+          cp /root/.local/share/godot/export_templates/4.2.2.stable/* \
+            ~/.local/share/godot/export_templates/4.2.2.stable/
 
-          cat > /home/runner/work/Feth-i-alem/Feth-i-alem/export_presets.cfg << 'EOF'
+          cp /root/.config/godot/editor_settings-4.tres \
+            ~/.config/godot/editor_settings-4.tres
+
+      - name: Export preset oluştur
+        run: |
+          cat > export_presets.cfg << 'EOF'
           [preset.0]
-
           name="Android"
           platform="Android"
           runnable=true
-          dedicated_server=false
           export_filter="all_resources"
           include_filter=""
           exclude_filter=""
           export_path="FethiAlem.apk"
-          encryption_include_filters=""
-          encryption_exclude_filters=""
           encrypt_pck=false
           encrypt_directory=false
-
           [preset.0.options]
-
-          architectures/armeabi-v7a=false
           architectures/arm64-v8a=true
-          architectures/x86=false
-          architectures/x86_64=false
-          keystore/debug="/home/runner/work/Feth-i-alem/Feth-i-alem/debug.keystore"
-          keystore/debug_user="androiddebugkey"
-          keystore/debug_password="android"
-          keystore/release=""
-          keystore/release_user=""
-          keystore/release_password=""
           package/unique_name="com.fethialem.game"
           package/name="Feth-i Alem"
-          package/signed=true
           version/code=1
           version/name="0.1"
           EOF
 
       - name: APK derle
-        run: |
-          cd /home/runner/work/Feth-i-alem/Feth-i-alem
-          godot --headless --export-debug "Android" FethiAlem.apk
+        run: godot --headless --export-debug "Android" FethiAlem.apk
 
       - name: APK kaydet
         uses: actions/upload-artifact@v4
         with:
           name: FethiAlem-APK
-          path: /home/runner/work/Feth-i-alem/Feth-i-alem/FethiAlem.apk
+          path: FethiAlem.apk
           retention-days: 30

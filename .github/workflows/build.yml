@@ -31,11 +31,13 @@ jobs:
           unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
       - name: Keystore
-        run: keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Boş Proje Oluştur
         run: |
-          mkdir -p empty_project/scenes
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          ls -la /tmp/debug.keystore
+
+      - name: Proje
+        run: |
+          mkdir -p empty_project
           cat > empty_project/project.godot << 'EOF'
           config_version=5
           [application]
@@ -49,7 +51,9 @@ jobs:
           version/code=1
           version/name="0.1"
           EOF
-          
+
+      - name: Export Preset
+        run: |
           cat > empty_project/export_presets.cfg << 'EOF'
           [preset.0]
           name="Android"
@@ -64,7 +68,7 @@ jobs:
           gradle_build/use_gradle_build=true
           architectures/arm64_v8a=true
           architectures/armeabi_v7a=false
-          keystore/debug="../debug.keystore"
+          keystore/debug="/tmp/debug.keystore"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           version/code=1
@@ -88,7 +92,7 @@ jobs:
         run: |
           cd empty_project
           godot --headless --export-debug "Android" FethiAlem.apk
-          mv FethiAlem.apk ..
+          cp FethiAlem.apk ..
 
       - uses: actions/upload-artifact@v4
         if: always()

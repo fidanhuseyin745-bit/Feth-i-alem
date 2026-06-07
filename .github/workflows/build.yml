@@ -40,8 +40,8 @@ jobs:
         run: |
           mkdir -p android/build
           unzip -o ~/.local/share/godot/export_templates/4.3.stable/android_source.zip -d android/build/
-          echo "4.3.stable" > android/build/.build_version
-          cat android/build/.build_version
+          echo "4.3.stable" > android/.build_version
+          cat android/.build_version
 
       - name: Generate debug keystore
         run: |

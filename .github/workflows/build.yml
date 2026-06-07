@@ -35,8 +35,11 @@ jobs:
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
           unzip -q /tmp/templates.tpz -d /tmp/tpz
           cp /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
-          echo "=== Export templates installed ==="
-          ls ~/.local/share/godot/export_templates/4.3.stable/ | head -20
+
+      - name: Install Android build template
+        run: |
+          mkdir -p android/build
+          unzip -o ~/.local/share/godot/export_templates/4.3.stable/android_source.zip -d android/build/
 
       - name: Generate debug keystore
         run: |
@@ -58,35 +61,17 @@ jobs:
           echo 'export/android/debug_keystore = "/tmp/debug.keystore"' >> ~/.config/godot/editor_settings-4.tres
           echo 'export/android/debug_keystore_user = "androiddebugkey"' >> ~/.config/godot/editor_settings-4.tres
           echo 'export/android/debug_keystore_pass = "android"' >> ~/.config/godot/editor_settings-4.tres
-          echo "=== Editor settings ==="
           cat ~/.config/godot/editor_settings-4.tres
 
-      - name: Patch export_presets.cfg with keystore paths
+      - name: Patch export_presets.cfg with keystore
         run: |
           sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
           sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
           sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
-          echo "=== export_presets.cfg ==="
-          cat export_presets.cfg
-
-      - name: Verify SDK paths
-        run: |
-          echo "JAVA_HOME=$JAVA_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls "$JAVA_HOME/bin/java" || echo "java binary not found!"
-          ls "$ANDROID_SDK_ROOT/build-tools/34.0.0/" | head -5
-          ls "$ANDROID_SDK_ROOT/platform-tools/adb" || echo "adb not found!"
-
-      - name: Import project
-        run: |
-          timeout 60 godot --headless --verbose --import 2>&1 || true
-          echo "=== Import step completed ==="
 
       - name: Export Android APK
         run: |
           godot --headless --verbose --export-debug "Android" FethiAlem.apk 2>&1
-          echo "=== Export complete ==="
           ls -la FethiAlem.apk
 
       - uses: actions/upload-artifact@v4

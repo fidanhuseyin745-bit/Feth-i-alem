@@ -33,12 +33,24 @@ jobs:
       - name: Keystore
         run: keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Sil eski export_presets
-        run: rm -f export_presets.cfg
-
-      - name: Yeni export_presets
+      - name: Boş Proje Oluştur
         run: |
-          cat > export_presets.cfg << 'EOF'
+          mkdir -p empty_project/scenes
+          cat > empty_project/project.godot << 'EOF'
+          config_version=5
+          [application]
+          config/name="Feth-i Alem"
+          config/features=PackedStringArray("4.3", "Mobile")
+          [rendering]
+          renderer/rendering_method="mobile"
+          [android]
+          package/unique_name="com.fethialem.game"
+          package/name="Feth-i Alem"
+          version/code=1
+          version/name="0.1"
+          EOF
+          
+          cat > empty_project/export_presets.cfg << 'EOF'
           [preset.0]
           name="Android"
           platform="Android"
@@ -52,7 +64,7 @@ jobs:
           gradle_build/use_gradle_build=true
           architectures/arm64_v8a=true
           architectures/armeabi_v7a=false
-          keystore/debug="debug.keystore"
+          keystore/debug="../debug.keystore"
           keystore/debug_user="androiddebugkey"
           keystore/debug_password="android"
           version/code=1
@@ -65,16 +77,18 @@ jobs:
       - name: Settings
         run: |
           mkdir -p ~/.config/godot
-          JAVA_PATH="$JAVA_HOME_17"
           cat > ~/.config/godot/editor_settings-4.tres << EOF
           [gd_resource type="EditorSettings" format=3]
           [resource]
           export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/java_sdk_path = "$JAVA_PATH"
+          export/android/java_sdk_path = "$JAVA_HOME_17"
           EOF
 
       - name: Export
-        run: godot --headless --export-debug "Android" FethiAlem.apk
+        run: |
+          cd empty_project
+          godot --headless --export-debug "Android" FethiAlem.apk
+          mv FethiAlem.apk ..
 
       - uses: actions/upload-artifact@v4
         if: always()

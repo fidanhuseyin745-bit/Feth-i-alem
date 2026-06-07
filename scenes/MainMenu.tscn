@@ -1,13 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=2 format=3 uid="uid://dxmenu001"]
 
-[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1_menu"]
 
 [node name="MainMenu" type="Node2D"]
-script = ExtResource("1")
+script = ExtResource("1_menu")
 
 [node name="Background" type="ColorRect" parent="."]
-offset_right = 1080
-offset_bottom = 1920
+offset_right = 1080.0
+offset_bottom = 1920.0
 color = Color(0.08, 0.06, 0.03, 1)
 
 [node name="UI" type="CanvasLayer" parent="."]
@@ -24,31 +24,31 @@ theme_override_constants/separation = 30
 text = "☽"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 80
-theme_override_colors/font_color = Color(0.98, 0.78, 0.15)
+theme_override_colors/font_color = Color(0.98, 0.78, 0.15, 1)
 
 [node name="TitleLabel" type="Label" parent="UI/MenuContainer"]
 text = "FETHİ ÂLEM"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 42
-theme_override_colors/font_color = Color(0.98, 0.78, 0.15)
+theme_override_colors/font_color = Color(0.98, 0.78, 0.15, 1)
 
 [node name="SubTitle" type="Label" parent="UI/MenuContainer"]
 text = "Fatih Sultan Mehmet · 1453"
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.7, 0.6, 0.4)
+theme_override_colors/font_color = Color(0.7, 0.6, 0.4, 1)
 
 [node name="NewGameBtn" type="Button" parent="UI/MenuContainer"]
-text = "⚔  YENİ OYUN"
+text = "YENİ OYUN"
 custom_minimum_size = Vector2(0, 80)
 theme_override_font_sizes/font_size = 24
 
 [node name="FactionBtn" type="Button" parent="UI/MenuContainer"]
-text = "☽  FRAKSİYON SEÇ"
+text = "FRAKSİYON SEÇ"
 custom_minimum_size = Vector2(0, 70)
 theme_override_font_sizes/font_size = 20
 
 [node name="HistoryBtn" type="Button" parent="UI/MenuContainer"]
-text = "📜  TARİHÎ NOTLAR"
+text = "TARİHÎ NOTLAR"
 custom_minimum_size = Vector2(0, 70)
 theme_override_font_sizes/font_size = 20

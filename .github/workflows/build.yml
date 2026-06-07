@@ -45,25 +45,56 @@ jobs:
             -storepass android -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Configure Godot editor settings
+      - name: Configure Godot editor settings with SDK paths
         run: |
           mkdir -p ~/.config/godot
-          JAVA_SDK_PATH="$JAVA_HOME"
-          cat > ~/.config/godot/editor_settings-4.tres << SETTINGS
+          cat > ~/.config/godot/editor_settings-4.tres <<'HEREDOC'
           [gd_resource type="EditorSettings" format=3]
           [resource]
-          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/java_sdk_path = "$JAVA_SDK_PATH"
-          export/android/debug_keystore = "/tmp/debug.keystore"
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          SETTINGS
+          HEREDOC
+          # Write SDK paths with shell expansion (no leading whitespace)
+          {
+            echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\""
+            echo "export/android/java_sdk_path = \"$JAVA_HOME\""
+            echo "export/android/debug_keystore = \"/tmp/debug.keystore\""
+            echo "export/android/debug_keystore_user = \"androiddebugkey\""
+            echo "export/android/debug_keystore_pass = \"android\""
+          } >> ~/.config/godot/editor_settings-4.tres
+          echo "--- Editor settings ---"
+          cat ~/.config/godot/editor_settings-4.tres
+
+      - name: Patch export_presets.cfg with keystore paths
+        run: |
+          sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
+          sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
+          sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
+          echo "--- export_presets.cfg ---"
+          cat export_presets.cfg
+
+      - name: Install Android build template
+        run: |
+          TEMPLATE_ZIP=~/.local/share/godot/export_templates/4.3.stable/android_source.zip
+          if [ -f "$TEMPLATE_ZIP" ]; then
+            mkdir -p android/build
+            unzip -o "$TEMPLATE_ZIP" -d android/build/
+            echo "Android build template installed successfully"
+            ls -la android/build/
+          else
+            echo "ERROR: android_source.zip not found at $TEMPLATE_ZIP"
+            echo "Available template files:"
+            ls ~/.local/share/godot/export_templates/4.3.stable/
+            exit 1
+          fi
 
       - name: Import project resources
-        run: godot --headless --import 2>&1 || true
+        run: |
+          timeout 30 godot --headless --import 2>&1 || true
+          echo "Import step completed"
 
       - name: Export Android APK
-        run: godot --headless --export-debug "Android" FethiAlem.apk
+        run: |
+          godot --headless --export-debug "Android" FethiAlem.apk 2>&1
+          ls -la FethiAlem.apk
 
       - uses: actions/upload-artifact@v4
         if: always()

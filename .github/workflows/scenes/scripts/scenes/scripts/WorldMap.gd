@@ -34,6 +34,22 @@ var factions = {
 @onready var regions_node = $Regions
 
 func _ready():
+	var required_nodes = {
+		"end_turn_btn": end_turn_btn,
+		"attack_btn": attack_btn,
+		"diplomacy_btn": diplomacy_btn,
+		"build_btn": build_btn,
+		"gold_label": gold_label,
+		"turn_label": turn_label,
+		"regions_node": regions_node,
+		"region_panel": region_panel,
+		"region_name": region_name,
+		"region_info": region_info,
+	}
+	for node_name in required_nodes:
+		if not required_nodes[node_name]:
+			push_error("WorldMap._ready: required node '%s' not found — check scene tree" % node_name)
+			return
 	end_turn_btn.pressed.connect(_on_end_turn)
 	attack_btn.pressed.connect(_on_attack)
 	diplomacy_btn.pressed.connect(_on_diplomacy)
@@ -42,6 +58,9 @@ func _ready():
 	_update_hud()
 
 func _draw_map():
+	if not regions_node:
+		push_error("WorldMap._draw_map: regions_node is null")
+		return
 	for child in regions_node.get_children():
 		child.queue_free()
 	for region_id in regions:
@@ -61,20 +80,35 @@ func _draw_map():
 		regions_node.add_child(btn)
 
 func _on_region_pressed(region_id: String):
+	if not regions.has(region_id):
+		push_error("WorldMap._on_region_pressed: unknown region_id '%s'" % region_id)
+		return
 	game_state["selected_region"] = region_id
 	var data = regions[region_id]
-	var fname = factions[data["owner"]]["name"] if factions.has(data["owner"]) else data["owner"]
+	var owner_key = data["owner"]
+	var fname = factions[owner_key]["name"] if factions.has(owner_key) else owner_key
+	if not region_name or not region_info:
+		push_error("WorldMap._on_region_pressed: region panel labels are null")
+		return
 	region_name.text = data["name"]
 	region_info.text = "Sahip: %s\nAsker: %d\nGelir: %d/tur" % [fname, data["troops"], data["income"]]
-	attack_btn.visible = data["owner"] != "ottoman"
-	diplomacy_btn.visible = data["owner"] != "ottoman"
-	build_btn.visible = data["owner"] == "ottoman"
+	attack_btn.visible = owner_key != "ottoman"
+	diplomacy_btn.visible = owner_key != "ottoman"
+	build_btn.visible = owner_key == "ottoman"
 	region_panel.visible = true
 
 func _on_attack():
 	var rid = game_state["selected_region"]
-	if rid == "": return
+	if rid == "":
+		push_warning("WorldMap._on_attack: no region selected")
+		return
+	if not regions.has(rid):
+		push_error("WorldMap._on_attack: selected region '%s' not found in regions" % rid)
+		return
 	var data = regions[rid]
+	if data["owner"] == "ottoman":
+		push_warning("WorldMap._on_attack: cannot attack own region '%s'" % rid)
+		return
 	var my_t = 0
 	for r in regions.values():
 		if r["owner"] == "ottoman": my_t += r["troops"]
@@ -94,7 +128,12 @@ func _on_attack():
 
 func _on_diplomacy():
 	var rid = game_state["selected_region"]
-	if rid == "": return
+	if rid == "":
+		push_warning("WorldMap._on_diplomacy: no region selected")
+		return
+	if not regions.has(rid):
+		push_error("WorldMap._on_diplomacy: selected region '%s' not found" % rid)
+		return
 	if game_state["gold"] >= 500:
 		game_state["gold"] -= 500
 		_show_msg("Elçi gönderildi! İlişkiler iyileşti.")
@@ -104,7 +143,15 @@ func _on_diplomacy():
 
 func _on_build():
 	var rid = game_state["selected_region"]
-	if rid == "": return
+	if rid == "":
+		push_warning("WorldMap._on_build: no region selected")
+		return
+	if not regions.has(rid):
+		push_error("WorldMap._on_build: selected region '%s' not found" % rid)
+		return
+	if regions[rid]["owner"] != "ottoman":
+		push_warning("WorldMap._on_build: cannot build in non-Ottoman region '%s'" % rid)
+		return
 	if game_state["gold"] >= 300:
 		game_state["gold"] -= 300
 		regions[rid]["troops"] += 500
@@ -121,12 +168,17 @@ func _on_end_turn():
 		if r["owner"] == "ottoman": income += r["income"]
 	game_state["gold"] += income
 	for faction in ["byzantine", "karamanid", "albania", "venice", "akkoyunlu"]:
+		if not factions.has(faction):
+			push_warning("WorldMap._on_end_turn: unknown faction '%s' in AI loop" % faction)
+			continue
 		if randf() < 0.15:
 			for rid in regions:
 				if regions[rid]["owner"] == "ottoman" and randf() < 0.3:
 					var at = 0
 					for r in regions.values():
 						if r["owner"] == faction: at += r["troops"]
+					if at == 0:
+						break
 					if randf() < float(at) / float(at + regions[rid]["troops"] + 1) * 0.4:
 						regions[rid]["owner"] = faction
 						regions[rid]["color_owner"] = factions[faction]["color"]
@@ -137,17 +189,28 @@ func _on_end_turn():
 	_show_msg("Tur %d — +%d altın" % [game_state["turn"], income])
 
 func _update_hud():
+	if not gold_label or not turn_label:
+		push_error("WorldMap._update_hud: HUD label nodes are null")
+		return
 	gold_label.text = "🪙 %d" % game_state["gold"]
 	turn_label.text = "Tur: %d" % game_state["turn"]
 
 func _show_msg(msg: String):
+	var ui = get_node_or_null("UI")
+	if not ui:
+		push_error("WorldMap._show_msg: UI node not found, message lost: '%s'" % msg)
+		return
 	var lbl = Label.new()
 	lbl.text = msg
 	lbl.add_theme_font_size_override("font_size", 18)
 	lbl.add_theme_color_override("font_color", Color(1, 0.9, 0.2))
 	lbl.position = Vector2(150, 400)
-	$UI.add_child(lbl)
+	ui.add_child(lbl)
 	var tw = create_tween()
+	if not tw:
+		push_error("WorldMap._show_msg: failed to create tween for message '%s'" % msg)
+		lbl.queue_free()
+		return
 	tw.tween_property(lbl, "position:y", 340, 1.5)
 	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 1.5)
 	tw.tween_callback(lbl.queue_free)

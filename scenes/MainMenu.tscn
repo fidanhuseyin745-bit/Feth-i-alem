@@ -1,7 +1,9 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MainMenu.gd" id="1"]
 
 [node name="MainMenu" type="Node2D"]
-script = ExtResource("res://scripts/MainMenu.gd")
+script = ExtResource("1")
 
 [node name="Background" type="ColorRect" parent="."]
 offset_right = 1080

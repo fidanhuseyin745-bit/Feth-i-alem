@@ -173,17 +173,24 @@ func try_build(region_id: String) -> bool:
 		return false
 
 
-func simulate_enemy_turn(rng_attack_chance: float, rng_target_chance: float, rng_win_roll: float) -> void:
+func try_enemy_faction_attack(faction: String, rng_attack_chance: float, rng_target_chance: float, rng_win_roll: float) -> bool:
+	if rng_attack_chance >= 0.15:
+		return false
+	for rid in regions:
+		if regions[rid]["owner"] == "ottoman" and rng_target_chance < 0.3:
+			var attacker_troops := get_faction_total_troops(faction)
+			var defender_troops: int = regions[rid]["troops"]
+			var threshold := float(attacker_troops) / float(attacker_troops + defender_troops + 1) * 0.4
+			if rng_win_roll < threshold:
+				regions[rid]["owner"] = faction
+				if factions.has(faction):
+					regions[rid]["color_owner"] = factions[faction]["color"]
+				region_lost.emit(rid, faction)
+				return true
+			break
+	return false
+
+
+func simulate_enemy_turn() -> void:
 	for faction in ["byzantine", "karamanid", "albania", "venice", "akkoyunlu"]:
-		if rng_attack_chance < 0.15:
-			for rid in regions:
-				if regions[rid]["owner"] == "ottoman" and rng_target_chance < 0.3:
-					var attacker_troops := get_faction_total_troops(faction)
-					var defender_troops: int = regions[rid]["troops"]
-					var threshold := float(attacker_troops) / float(attacker_troops + defender_troops + 1) * 0.4
-					if rng_win_roll < threshold:
-						regions[rid]["owner"] = faction
-						if factions.has(faction):
-							regions[rid]["color_owner"] = factions[faction]["color"]
-						region_lost.emit(rid, faction)
-					break
+		try_enemy_faction_attack(faction, randf(), randf(), randf())

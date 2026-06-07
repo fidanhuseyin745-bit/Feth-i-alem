@@ -308,24 +308,45 @@ func test_diplomacy_then_build() -> void:
 	assert_eq(gs.gold, 5000 - 500 - 300)
 
 
-# ── Enemy turn simulation ───────────────────────────────────────────────
+# ── Enemy faction attack (per-faction, testable) ────────────────────────
 
-func test_enemy_turn_no_attack_high_chance() -> void:
-	# rng_attack_chance = 0.99 → no faction attacks (need < 0.15)
-	var owners_before := {}
-	for rid in gs.regions:
-		owners_before[rid] = gs.regions[rid]["owner"]
-	gs.simulate_enemy_turn(0.99, 0.0, 0.0)
-	for rid in gs.regions:
-		assert_eq(gs.regions[rid]["owner"], owners_before[rid],
-			"No region should change owner when attack chance is high")
+func test_enemy_faction_no_attack_high_chance() -> void:
+	# rng_attack_chance = 0.99 → faction does not attack (need < 0.15)
+	var result := gs.try_enemy_faction_attack("byzantine", 0.99, 0.0, 0.0)
+	assert_false(result)
+	assert_eq(gs.get_regions_owned_by("ottoman").size(), 3)
 
 
-func test_enemy_turn_attack_but_miss_target() -> void:
-	# rng_attack_chance = 0.0 (attack), rng_target_chance = 0.99 (miss target)
-	var owners_before := {}
-	for rid in gs.regions:
-		owners_before[rid] = gs.regions[rid]["owner"]
-	gs.simulate_enemy_turn(0.0, 0.99, 0.0)
-	for rid in gs.regions:
-		assert_eq(gs.regions[rid]["owner"], owners_before[rid])
+func test_enemy_faction_attack_but_miss_target() -> void:
+	# attack triggers but rng_target_chance = 0.99 → no ottoman region targeted
+	var result := gs.try_enemy_faction_attack("byzantine", 0.0, 0.99, 0.0)
+	assert_false(result)
+	assert_eq(gs.get_regions_owned_by("ottoman").size(), 3)
+
+
+func test_enemy_faction_attack_success() -> void:
+	# byzantine (3000 troops) attacks an ottoman region
+	# all rng = 0.0 → attack triggers, target found, win roll succeeds
+	watch_signals(gs)
+	var result := gs.try_enemy_faction_attack("byzantine", 0.0, 0.0, 0.0)
+	assert_true(result, "Byzantine should conquer an ottoman region")
+	assert_eq(gs.get_regions_owned_by("ottoman").size(), 2,
+		"Ottoman should lose one region")
+	assert_signal_emitted(gs, "region_lost")
+
+
+func test_enemy_faction_attack_fail_win_roll() -> void:
+	# attack triggers and target found, but win roll too high → fails
+	var result := gs.try_enemy_faction_attack("byzantine", 0.0, 0.0, 0.999)
+	assert_false(result)
+	assert_eq(gs.get_regions_owned_by("ottoman").size(), 3)
+
+
+func test_enemy_faction_independent_rng() -> void:
+	# Two factions attack independently — only one should affect one region each
+	gs.try_enemy_faction_attack("byzantine", 0.0, 0.0, 0.0)
+	var ottoman_after_first := gs.get_regions_owned_by("ottoman").size()
+	gs.try_enemy_faction_attack("karamanid", 0.0, 0.0, 0.0)
+	var ottoman_after_second := gs.get_regions_owned_by("ottoman").size()
+	assert_true(ottoman_after_second <= ottoman_after_first,
+		"Each faction attack is independent")

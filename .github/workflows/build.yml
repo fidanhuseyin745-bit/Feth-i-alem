@@ -44,15 +44,19 @@ jobs:
           cat android/.build_version
 
       - name: Generate debug keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
         run: |
           keytool -genkey -v \
             -keystore /tmp/debug.keystore \
             -alias androiddebugkey \
             -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
+            -storepass "$KEYSTORE_PASSWORD" -keypass "$KEYSTORE_PASSWORD" \
             -dname "CN=Android Debug,O=Android,C=US"
 
       - name: Configure Godot editor settings
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
         run: |
           mkdir -p ~/.config/godot
           echo '[gd_resource type="EditorSettings" format=3]' > ~/.config/godot/editor_settings-4.tres
@@ -62,14 +66,17 @@ jobs:
           echo "export/android/java_sdk_path = \"$JAVA_HOME\"" >> ~/.config/godot/editor_settings-4.tres
           echo 'export/android/debug_keystore = "/tmp/debug.keystore"' >> ~/.config/godot/editor_settings-4.tres
           echo 'export/android/debug_keystore_user = "androiddebugkey"' >> ~/.config/godot/editor_settings-4.tres
-          echo 'export/android/debug_keystore_pass = "android"' >> ~/.config/godot/editor_settings-4.tres
+          echo "export/android/debug_keystore_pass = \"$KEYSTORE_PASSWORD\"" >> ~/.config/godot/editor_settings-4.tres
           cat ~/.config/godot/editor_settings-4.tres
 
       - name: Patch export_presets.cfg with keystore
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'android' }}
         run: |
           sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
           sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
-          sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
+          sed -i "s|keystore/debug_password=\"\"|keystore/debug_password=\"$KEYSTORE_PASSWORD\"|" export_presets.cfg
+          sed -i 's|permissions/internet=true|permissions/internet=false|' export_presets.cfg
 
       - name: Disable editor plugins for headless export
         run: |

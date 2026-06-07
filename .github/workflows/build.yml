@@ -3,6 +3,8 @@ name: Feth-i Alem APK Build
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -10,92 +12,79 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+
       - uses: android-actions/setup-android@v3
         with:
           packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34'
 
-      - name: Godot
+      - name: Install Godot 4.3
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          unzip -q Godot_v4.3-stable_linux.x86_64.zip && chmod +x Godot_v4.3-stable_linux.x86_64
+          unzip -q Godot_v4.3-stable_linux.x86_64.zip
+          chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
 
-      - name: Templates
+      - name: Install export templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/t.tpz
-          unzip -q /tmp/t.tpz -d /tmp && cp /tmp/templates/* ~/.local/share/godot/export_templates/4.3.stable/
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
+          unzip -q /tmp/templates.tpz -d /tmp/tpz
+          cp /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: Keystore
+      - name: Install Android build template
         run: |
-          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
-          ls -la /tmp/debug.keystore
+          mkdir -p android/build
+          unzip -o ~/.local/share/godot/export_templates/4.3.stable/android_source.zip -d android/build/
+          echo "4.3.stable" > android/.build_version
+          cat android/.build_version
 
-      - name: Proje
+      - name: Generate debug keystore
         run: |
-          mkdir -p empty_project
-          cat > empty_project/project.godot << 'EOF'
-          config_version=5
-          [application]
-          config/name="Feth-i Alem"
-          config/features=PackedStringArray("4.3", "Mobile")
-          [rendering]
-          renderer/rendering_method="mobile"
-          [android]
-          package/unique_name="com.fethialem.game"
-          package/name="Feth-i Alem"
-          version/code=1
-          version/name="0.1"
-          EOF
+          keytool -genkey -v \
+            -keystore /tmp/debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Export Preset
-        run: |
-          cat > empty_project/export_presets.cfg << 'EOF'
-          [preset.0]
-          name="Android"
-          platform="Android"
-          runnable=true
-          export_filter="all_resources"
-          include_filter=""
-          exclude_filter=""
-          export_path="FethiAlem.apk"
-          
-          [preset.0.options]
-          gradle_build/use_gradle_build=true
-          architectures/arm64_v8a=true
-          architectures/armeabi_v7a=false
-          keystore/debug="/tmp/debug.keystore"
-          keystore/debug_user="androiddebugkey"
-          keystore/debug_password="android"
-          version/code=1
-          version/name="0.1"
-          package/unique_name="com.fethialem.game"
-          package/name="Feth-i Alem"
-          permissions/internet=true
-          EOF
-
-      - name: Settings
+      - name: Configure Godot editor settings
         run: |
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << EOF
-          [gd_resource type="EditorSettings" format=3]
-          [resource]
-          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
-          export/android/java_sdk_path = "$JAVA_HOME_17"
-          EOF
+          echo '[gd_resource type="EditorSettings" format=3]' > ~/.config/godot/editor_settings-4.tres
+          echo '' >> ~/.config/godot/editor_settings-4.tres
+          echo '[resource]' >> ~/.config/godot/editor_settings-4.tres
+          echo "export/android/android_sdk_path = \"$ANDROID_SDK_ROOT\"" >> ~/.config/godot/editor_settings-4.tres
+          echo "export/android/java_sdk_path = \"$JAVA_HOME\"" >> ~/.config/godot/editor_settings-4.tres
+          echo 'export/android/debug_keystore = "/tmp/debug.keystore"' >> ~/.config/godot/editor_settings-4.tres
+          echo 'export/android/debug_keystore_user = "androiddebugkey"' >> ~/.config/godot/editor_settings-4.tres
+          echo 'export/android/debug_keystore_pass = "android"' >> ~/.config/godot/editor_settings-4.tres
+          cat ~/.config/godot/editor_settings-4.tres
 
-      - name: Export
+      - name: Patch export_presets.cfg with keystore
         run: |
-          cd empty_project
-          godot --headless --export-debug "Android" FethiAlem.apk
-          cp FethiAlem.apk ..
+          sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
+          sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
+          sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
+
+      - name: Disable editor plugins for headless export
+        run: |
+          sed -i 's|enabled=PackedStringArray.*|enabled=PackedStringArray()|' project.godot
+          echo "=== project.godot editor_plugins section ==="
+          grep -A2 "editor_plugins" project.godot
+
+      - name: Export Android APK
+        run: |
+          godot --headless --verbose --export-debug "Android" FethiAlem.apk 2>&1
+          ls -la FethiAlem.apk
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: FethiAlem-APK
           path: FethiAlem.apk
+          if-no-files-found: warn

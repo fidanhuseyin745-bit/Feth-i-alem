@@ -4,7 +4,7 @@ config_version=5
 
 config/name="Feth-i Alem"
 run/main_scene="res://scenes/MainMenu.tscn"
-config/features=PackedStringArray("4.2", "Mobile")
+config/features=PackedStringArray("4.3", "Mobile")
 
 [display]
 
@@ -21,6 +21,7 @@ enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 [rendering]
 
 renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
 
 [android]
 

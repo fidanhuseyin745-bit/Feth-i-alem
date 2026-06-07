@@ -69,6 +69,12 @@ jobs:
           sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
           sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
 
+      - name: Disable editor plugins for headless export
+        run: |
+          sed -i 's|enabled=PackedStringArray.*|enabled=PackedStringArray()|' project.godot
+          echo "=== project.godot editor_plugins section ==="
+          grep -A2 "editor_plugins" project.godot
+
       - name: Export Android APK
         run: |
           godot --headless --verbose --export-debug "Android" FethiAlem.apk 2>&1

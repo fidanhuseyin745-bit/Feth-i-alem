@@ -1,5 +1,7 @@
 extends Node2D
 
+const Utils = preload("res://scenes/scripts/Utils.gd")
+
 var game_state = {"turn": 1, "gold": 5000, "selected_region": ""}
 
 var regions = {
@@ -69,11 +71,7 @@ func _draw_map():
 		btn.text = data["name"]
 		btn.position = data["position"] - Vector2(55, 25)
 		btn.custom_minimum_size = Vector2(110, 50)
-		var style = StyleBoxFlat.new()
-		style.bg_color = data["color_owner"]
-		style.set_corner_radius_all(8)
-		style.set_border_width_all(2)
-		style.border_color = Color(1, 1, 1, 0.5)
+		var style = Utils.create_style_box(data["color_owner"], 8, Color(1, 1, 1, 0.5), 2)
 		btn.add_theme_stylebox_override("normal", style)
 		btn.add_theme_font_size_override("font_size", 12)
 		btn.pressed.connect(_on_region_pressed.bind(region_id))
@@ -97,14 +95,19 @@ func _on_region_pressed(region_id: String):
 	build_btn.visible = owner_key == "ottoman"
 	region_panel.visible = true
 
-func _on_attack():
+func _get_selected_region() -> String:
 	var rid = game_state["selected_region"]
 	if rid == "":
-		push_warning("WorldMap._on_attack: no region selected")
-		return
+		push_warning("WorldMap: no region selected")
+		return ""
 	if not regions.has(rid):
-		push_error("WorldMap._on_attack: selected region '%s' not found in regions" % rid)
-		return
+		push_error("WorldMap: selected region '%s' not found in regions" % rid)
+		return ""
+	return rid
+
+func _on_attack():
+	var rid = _get_selected_region()
+	if rid == "": return
 	var data = regions[rid]
 	if data["owner"] == "ottoman":
 		push_warning("WorldMap._on_attack: cannot attack own region '%s'" % rid)
@@ -127,33 +130,21 @@ func _on_attack():
 	_update_hud()
 
 func _on_diplomacy():
-	var rid = game_state["selected_region"]
-	if rid == "":
-		push_warning("WorldMap._on_diplomacy: no region selected")
-		return
-	if not regions.has(rid):
-		push_error("WorldMap._on_diplomacy: selected region '%s' not found" % rid)
-		return
-	if game_state["gold"] >= 500:
-		game_state["gold"] -= 500
+	var rid = _get_selected_region()
+	if rid == "": return
+	if Utils.try_spend_gold(game_state, 500):
 		_show_msg("Elçi gönderildi! İlişkiler iyileşti.")
 	else:
 		_show_msg("Yetersiz altın! (500 gerekli)")
 	_update_hud()
 
 func _on_build():
-	var rid = game_state["selected_region"]
-	if rid == "":
-		push_warning("WorldMap._on_build: no region selected")
-		return
-	if not regions.has(rid):
-		push_error("WorldMap._on_build: selected region '%s' not found" % rid)
-		return
+	var rid = _get_selected_region()
+	if rid == "": return
 	if regions[rid]["owner"] != "ottoman":
 		push_warning("WorldMap._on_build: cannot build in non-Ottoman region '%s'" % rid)
 		return
-	if game_state["gold"] >= 300:
-		game_state["gold"] -= 300
+	if Utils.try_spend_gold(game_state, 300):
 		regions[rid]["troops"] += 500
 		regions[rid]["income"] += 50
 		_show_msg("İnşaat tamam! Asker ve gelir arttı.")
@@ -196,21 +187,4 @@ func _update_hud():
 	turn_label.text = "Tur: %d" % game_state["turn"]
 
 func _show_msg(msg: String):
-	var ui = get_node_or_null("UI")
-	if not ui:
-		push_error("WorldMap._show_msg: UI node not found, message lost: '%s'" % msg)
-		return
-	var lbl = Label.new()
-	lbl.text = msg
-	lbl.add_theme_font_size_override("font_size", 18)
-	lbl.add_theme_color_override("font_color", Color(1, 0.9, 0.2))
-	lbl.position = Vector2(150, 400)
-	ui.add_child(lbl)
-	var tw = create_tween()
-	if not tw:
-		push_error("WorldMap._show_msg: failed to create tween for message '%s'" % msg)
-		lbl.queue_free()
-		return
-	tw.tween_property(lbl, "position:y", 340, 1.5)
-	tw.parallel().tween_property(lbl, "modulate:a", 0.0, 1.5)
-	tw.tween_callback(lbl.queue_free)
+	Utils.show_toast($UI, self, msg)

@@ -5,14 +5,14 @@ const Utils = preload("res://scenes/scripts/Utils.gd")
 var game_state = {"turn": 1, "gold": 5000, "selected_region": ""}
 
 var regions = {
-	"istanbul": {"name": "İstanbul", "owner": "byzantine", "troops": 3000, "income": 500, "position": Vector2(520, 280), "color_owner": Color(0.3, 0.5, 0.9)},
-	"edirne": {"name": "Edirne", "owner": "ottoman", "troops": 5000, "income": 300, "position": Vector2(400, 260), "color_owner": Color(0.9, 0.7, 0.1)},
-	"bursa": {"name": "Bursa", "owner": "ottoman", "troops": 2000, "income": 200, "position": Vector2(570, 320), "color_owner": Color(0.9, 0.7, 0.1)},
-	"selanik": {"name": "Selanik", "owner": "ottoman", "troops": 1500, "income": 180, "position": Vector2(380, 310), "color_owner": Color(0.9, 0.7, 0.1)},
-	"karaman": {"name": "Karaman", "owner": "karamanid", "troops": 2500, "income": 160, "position": Vector2(620, 370), "color_owner": Color(0.2, 0.7, 0.4)},
-	"arnavutluk": {"name": "Arnavutluk", "owner": "albania", "troops": 1800, "income": 100, "position": Vector2(310, 330), "color_owner": Color(0.85, 0.2, 0.2)},
-	"venedik_adalar": {"name": "Ege Adaları", "owner": "venice", "troops": 1200, "income": 250, "position": Vector2(450, 380), "color_owner": Color(0.6, 0.3, 0.8)},
-	"akkoyunlu": {"name": "Akkoyunlu", "owner": "akkoyunlu", "troops": 4000, "income": 200, "position": Vector2(750, 330), "color_owner": Color(0.9, 0.5, 0.1)}
+	"istanbul": {"name": "İstanbul", "owner": "byzantine", "troops": 3000, "income": 500, "position": Vector2(434, 314), "color_owner": Color(0.3, 0.5, 0.9)},
+	"edirne": {"name": "Edirne", "owner": "ottoman", "troops": 5000, "income": 300, "position": Vector2(334, 267), "color_owner": Color(0.9, 0.7, 0.1)},
+	"bursa": {"name": "Bursa", "owner": "ottoman", "troops": 2000, "income": 200, "position": Vector2(438, 372), "color_owner": Color(0.9, 0.7, 0.1)},
+	"selanik": {"name": "Selanik", "owner": "ottoman", "troops": 1500, "income": 180, "position": Vector2(184, 340), "color_owner": Color(0.9, 0.7, 0.1)},
+	"karaman": {"name": "Karaman", "owner": "karamanid", "troops": 2500, "income": 160, "position": Vector2(611, 582), "color_owner": Color(0.2, 0.7, 0.4)},
+	"arnavutluk": {"name": "Arnavutluk", "owner": "albania", "troops": 1800, "income": 100, "position": Vector2(80, 291), "color_owner": Color(0.85, 0.2, 0.2)},
+	"venedik_adalar": {"name": "Ege Adaları", "owner": "venice", "troops": 1200, "income": 250, "position": Vector2(332, 490), "color_owner": Color(0.6, 0.3, 0.8)},
+	"akkoyunlu": {"name": "Akkoyunlu", "owner": "akkoyunlu", "troops": 4000, "income": 200, "position": Vector2(934, 420), "color_owner": Color(0.9, 0.5, 0.1)}
 }
 
 var factions = {
@@ -88,15 +88,15 @@ func _draw_map():
 		if faction_icons.has(owner_key):
 			var icon_sprite = Sprite2D.new()
 			icon_sprite.texture = faction_icons[owner_key]
-			icon_sprite.position = Vector2(0, -28)
-			icon_sprite.scale = Vector2(0.5, 0.5)
+			icon_sprite.position = Vector2(0, -38)
+			icon_sprite.scale = Vector2(0.7, 0.7)
 			container.add_child(icon_sprite)
 
 		# Region button — semi-transparent pin-style marker
 		var btn = Button.new()
 		btn.text = data["name"]
-		btn.custom_minimum_size = Vector2(90, 36)
-		btn.position = Vector2(-45, -18)
+		btn.custom_minimum_size = Vector2(120, 44)
+		btn.position = Vector2(-60, -22)
 
 		var bg_color = Color(data["color_owner"], 0.6)
 		var style_normal = Utils.create_style_box(bg_color, 6, Color(1, 1, 1, 0.3), 1)
@@ -124,7 +124,7 @@ func _draw_map():
 		style_pressed.content_margin_bottom = 2
 		btn.add_theme_stylebox_override("pressed", style_pressed)
 
-		btn.add_theme_font_size_override("font_size", 11)
+		btn.add_theme_font_size_override("font_size", 14)
 		btn.add_theme_color_override("font_color", Color(1, 0.95, 0.85))
 		btn.add_theme_color_override("font_hover_color", Color(1, 1, 0.9))
 
@@ -134,9 +134,9 @@ func _draw_map():
 		# Troops indicator (small label below button)
 		var troops_lbl = Label.new()
 		troops_lbl.text = "⚔ %d" % data["troops"]
-		troops_lbl.add_theme_font_size_override("font_size", 9)
-		troops_lbl.add_theme_color_override("font_color", Color(0.8, 0.75, 0.6, 0.8))
-		troops_lbl.position = Vector2(-25, 20)
+		troops_lbl.add_theme_font_size_override("font_size", 12)
+		troops_lbl.add_theme_color_override("font_color", Color(0.9, 0.85, 0.7, 0.9))
+		troops_lbl.position = Vector2(-30, 26)
 		container.add_child(troops_lbl)
 
 		_region_buttons[region_id] = {"container": container, "btn": btn, "troops_lbl": troops_lbl}

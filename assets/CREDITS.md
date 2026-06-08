@@ -2,20 +2,21 @@
 
 ## Map & Texture Assets
 
-All map graphics in this project are **procedurally generated** using open-source
-tools (Python + Pillow) and free base textures.
+### Historical Map Base
+- **Source**: "Ottoman Empire at Fall of Constantinople, 1453"
+- **Author**: J.G. Bartholomew, *A Literary & Historical Atlas of Europe*, 1910
+- **License**: Public Domain (published before 1929)
+- **Publisher**: E.P. Dutton & Co., Ltd.
+- **Usage**: Used as map background, cropped to the Eastern Mediterranean / Balkans / Anatolia region, with dark aging treatment applied for game theme
 
-### Base Parchment Texture
+### Parchment Texture
 - **Source**: [FANTASY-parchment-set](https://opengameart.org/content/fantasy-parchment-set) on OpenGameArt.org
 - **Author**: Szadi Art
 - **License**: CC0 (Public Domain)
-- **Usage**: Used as a base texture, darkened and tinted to match the game's Ottoman theme
+- **Usage**: Used as fill texture for areas outside the historical map
 
 ### Generated Assets
-The following assets were procedurally generated and are original works:
-- `maps/world_map_bg.png` — Main world map background (territories, coastlines, sea)
-- `maps/sea_overlay.png` — Sea-only overlay for effects
-- `maps/highlights/` — Per-region highlight textures
+The following assets were procedurally generated:
 - `textures/parchment_tile.png` — Tileable parchment texture for UI panels
 - `textures/panel_dark.png` — Dark panel background for UI
 - `textures/vignette.png` — Screen vignette overlay

@@ -55,6 +55,9 @@ func _ready():
 		if not required_nodes[node_name]:
 			push_error("WorldMap._ready: required node '%s' not found — check scene tree" % node_name)
 			return
+	var vp_size = get_viewport_rect().size
+	$MapBackground.size = vp_size
+	$Vignette.size = vp_size
 	_load_faction_icons()
 	end_turn_btn.pressed.connect(_on_end_turn)
 	attack_btn.pressed.connect(_on_attack)

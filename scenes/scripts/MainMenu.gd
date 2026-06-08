@@ -7,6 +7,10 @@ const Utils = preload("res://scenes/scripts/Utils.gd")
 @onready var history_btn = $UI/MenuContainer/HistoryBtn
 
 func _ready():
+	var vp_size = get_viewport_rect().size
+	$Background.size = vp_size
+	$ParchmentOverlay.size = vp_size
+	$Vignette.size = vp_size
 	new_game_btn.pressed.connect(_start_game)
 	faction_btn.pressed.connect(_show_faction_select)
 	history_btn.pressed.connect(_show_history)

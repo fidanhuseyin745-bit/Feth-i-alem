@@ -8,13 +8,15 @@
 script = ExtResource("1_menu")
 
 [node name="Background" type="ColorRect" parent="."]
-offset_right = 1080.0
-offset_bottom = 1920.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 color = Color(0.08, 0.06, 0.03, 1)
 
 [node name="ParchmentOverlay" type="TextureRect" parent="."]
-offset_right = 1080.0
-offset_bottom = 1920.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 texture = ExtResource("2_parch")
 expand_mode = 1
 stretch_mode = 0
@@ -22,8 +24,9 @@ modulate = Color(1, 1, 1, 0.15)
 mouse_filter = 2
 
 [node name="Vignette" type="TextureRect" parent="."]
-offset_right = 1080.0
-offset_bottom = 1920.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 texture = ExtResource("3_vignette")
 expand_mode = 1
 stretch_mode = 6

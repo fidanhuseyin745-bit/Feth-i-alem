@@ -5,14 +5,14 @@ const Utils = preload("res://scenes/scripts/Utils.gd")
 var game_state = {"turn": 1, "gold": 5000, "selected_region": ""}
 
 var regions = {
-	"istanbul": {"name": "İstanbul", "owner": "byzantine", "troops": 3000, "income": 500, "position": Vector2(434, 314), "color_owner": Color(0.3, 0.5, 0.9)},
-	"edirne": {"name": "Edirne", "owner": "ottoman", "troops": 5000, "income": 300, "position": Vector2(334, 267), "color_owner": Color(0.9, 0.7, 0.1)},
-	"bursa": {"name": "Bursa", "owner": "ottoman", "troops": 2000, "income": 200, "position": Vector2(438, 372), "color_owner": Color(0.9, 0.7, 0.1)},
-	"selanik": {"name": "Selanik", "owner": "ottoman", "troops": 1500, "income": 180, "position": Vector2(184, 340), "color_owner": Color(0.9, 0.7, 0.1)},
-	"karaman": {"name": "Karaman", "owner": "karamanid", "troops": 2500, "income": 160, "position": Vector2(611, 582), "color_owner": Color(0.2, 0.7, 0.4)},
-	"arnavutluk": {"name": "Arnavutluk", "owner": "albania", "troops": 1800, "income": 100, "position": Vector2(80, 291), "color_owner": Color(0.85, 0.2, 0.2)},
-	"venedik_adalar": {"name": "Ege Adaları", "owner": "venice", "troops": 1200, "income": 250, "position": Vector2(332, 490), "color_owner": Color(0.6, 0.3, 0.8)},
-	"akkoyunlu": {"name": "Akkoyunlu", "owner": "akkoyunlu", "troops": 4000, "income": 200, "position": Vector2(934, 420), "color_owner": Color(0.9, 0.5, 0.1)}
+	"istanbul": {"name": "İstanbul", "owner": "byzantine", "troops": 3000, "income": 500, "position": Vector2(445, 814), "color_owner": Color(0.3, 0.5, 0.9)},
+	"edirne": {"name": "Edirne", "owner": "ottoman", "troops": 5000, "income": 300, "position": Vector2(355, 686), "color_owner": Color(0.9, 0.7, 0.1)},
+	"bursa": {"name": "Bursa", "owner": "ottoman", "troops": 2000, "income": 200, "position": Vector2(449, 973), "color_owner": Color(0.9, 0.7, 0.1)},
+	"selanik": {"name": "Selanik", "owner": "ottoman", "troops": 1500, "income": 180, "position": Vector2(221, 887), "color_owner": Color(0.9, 0.7, 0.1)},
+	"karaman": {"name": "Karaman", "owner": "karamanid", "troops": 2500, "income": 160, "position": Vector2(604, 1548), "color_owner": Color(0.2, 0.7, 0.4)},
+	"arnavutluk": {"name": "Arnavutluk", "owner": "albania", "troops": 1800, "income": 100, "position": Vector2(105, 753), "color_owner": Color(0.85, 0.2, 0.2)},
+	"venedik_adalar": {"name": "Ege Adaları", "owner": "venice", "troops": 1200, "income": 250, "position": Vector2(353, 1295), "color_owner": Color(0.6, 0.3, 0.8)},
+	"akkoyunlu": {"name": "Akkoyunlu", "owner": "akkoyunlu", "troops": 4000, "income": 200, "position": Vector2(893, 1103), "color_owner": Color(0.9, 0.5, 0.1)}
 }
 
 var factions = {

@@ -6,6 +6,10 @@ config/name="Feth-i Alem"
 run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 
+[autoload]
+
+GameData="*res://scenes/scripts/GameData.gd"
+
 [display]
 
 window/size/viewport_width=1080

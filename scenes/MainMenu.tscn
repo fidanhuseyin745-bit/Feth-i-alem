@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://dxmenu001"]
+[gd_scene load_steps=4 format=3 uid="uid://dxmenu001"]
 
 [ext_resource type="Script" path="res://scenes/scripts/MainMenu.gd" id="1_menu"]
+[ext_resource type="Texture2D" path="res://assets/textures/parchment_tile.png" id="2_parch"]
+[ext_resource type="Texture2D" path="res://assets/textures/vignette.png" id="3_vignette"]
 
 [node name="MainMenu" type="Node2D"]
 script = ExtResource("1_menu")
@@ -9,6 +11,23 @@ script = ExtResource("1_menu")
 offset_right = 1080.0
 offset_bottom = 1920.0
 color = Color(0.08, 0.06, 0.03, 1)
+
+[node name="ParchmentOverlay" type="TextureRect" parent="."]
+offset_right = 1080.0
+offset_bottom = 1920.0
+texture = ExtResource("2_parch")
+expand_mode = 1
+stretch_mode = 0
+modulate = Color(1, 1, 1, 0.15)
+mouse_filter = 2
+
+[node name="Vignette" type="TextureRect" parent="."]
+offset_right = 1080.0
+offset_bottom = 1920.0
+texture = ExtResource("3_vignette")
+expand_mode = 1
+stretch_mode = 6
+mouse_filter = 2
 
 [node name="UI" type="CanvasLayer" parent="."]
 

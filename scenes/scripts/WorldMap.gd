@@ -16,13 +16,16 @@ var regions = {
 }
 
 var factions = {
-	"ottoman": {"name": "Osmanlı", "color": Color(0.9, 0.7, 0.1)},
-	"byzantine": {"name": "Bizans", "color": Color(0.3, 0.5, 0.9)},
-	"karamanid": {"name": "Karamanoğlu", "color": Color(0.2, 0.7, 0.4)},
-	"albania": {"name": "Arnavutluk", "color": Color(0.85, 0.2, 0.2)},
-	"venice": {"name": "Venedik", "color": Color(0.6, 0.3, 0.8)},
-	"akkoyunlu": {"name": "Akkoyunlu", "color": Color(0.9, 0.5, 0.1)}
+	"ottoman": {"name": "Osmanlı", "color": Color(0.9, 0.7, 0.1), "symbol": "☽"},
+	"byzantine": {"name": "Bizans", "color": Color(0.3, 0.5, 0.9), "symbol": "✝"},
+	"karamanid": {"name": "Karamanoğlu", "color": Color(0.2, 0.7, 0.4), "symbol": "⚔"},
+	"albania": {"name": "Arnavutluk", "color": Color(0.85, 0.2, 0.2), "symbol": "⛰"},
+	"venice": {"name": "Venedik", "color": Color(0.6, 0.3, 0.8), "symbol": "⚜"},
+	"akkoyunlu": {"name": "Akkoyunlu", "color": Color(0.9, 0.5, 0.1), "symbol": "🐴"}
 }
+
+var faction_icons: Dictionary = {}
+var _region_buttons: Dictionary = {}
 
 @onready var gold_label = $UI/HUD/TopBar/TopBarContent/GoldLabel
 @onready var turn_label = $UI/HUD/TopBar/TopBarContent/TurnLabel
@@ -52,6 +55,7 @@ func _ready():
 		if not required_nodes[node_name]:
 			push_error("WorldMap._ready: required node '%s' not found — check scene tree" % node_name)
 			return
+	_load_faction_icons()
 	end_turn_btn.pressed.connect(_on_end_turn)
 	attack_btn.pressed.connect(_on_attack)
 	diplomacy_btn.pressed.connect(_on_diplomacy)
@@ -59,23 +63,83 @@ func _ready():
 	_draw_map()
 	_update_hud()
 
+func _load_faction_icons():
+	for fid in factions:
+		var path = "res://assets/icons/faction_%s.png" % fid
+		if ResourceLoader.exists(path):
+			faction_icons[fid] = load(path)
+
 func _draw_map():
 	if not regions_node:
 		push_error("WorldMap._draw_map: regions_node is null")
 		return
 	for child in regions_node.get_children():
 		child.queue_free()
+	_region_buttons.clear()
+
 	for region_id in regions:
 		var data = regions[region_id]
+		var container = Node2D.new()
+		container.position = data["position"]
+		regions_node.add_child(container)
+
+		# Faction icon sprite (if loaded)
+		var owner_key = data["owner"]
+		if faction_icons.has(owner_key):
+			var icon_sprite = Sprite2D.new()
+			icon_sprite.texture = faction_icons[owner_key]
+			icon_sprite.position = Vector2(0, -28)
+			icon_sprite.scale = Vector2(0.5, 0.5)
+			container.add_child(icon_sprite)
+
+		# Region button — semi-transparent pin-style marker
 		var btn = Button.new()
 		btn.text = data["name"]
-		btn.position = data["position"] - Vector2(55, 25)
-		btn.custom_minimum_size = Vector2(110, 50)
-		var style = Utils.create_style_box(data["color_owner"], 8, Color(1, 1, 1, 0.5), 2)
-		btn.add_theme_stylebox_override("normal", style)
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.custom_minimum_size = Vector2(90, 36)
+		btn.position = Vector2(-45, -18)
+
+		var bg_color = Color(data["color_owner"], 0.6)
+		var style_normal = Utils.create_style_box(bg_color, 6, Color(1, 1, 1, 0.3), 1)
+		style_normal.content_margin_left = 4
+		style_normal.content_margin_right = 4
+		style_normal.content_margin_top = 2
+		style_normal.content_margin_bottom = 2
+		btn.add_theme_stylebox_override("normal", style_normal)
+
+		var style_hover = Utils.create_style_box(
+			Color(data["color_owner"], 0.85), 6, Color(1, 0.9, 0.4, 0.7), 2
+		)
+		style_hover.content_margin_left = 4
+		style_hover.content_margin_right = 4
+		style_hover.content_margin_top = 2
+		style_hover.content_margin_bottom = 2
+		btn.add_theme_stylebox_override("hover", style_hover)
+
+		var style_pressed = Utils.create_style_box(
+			Color(data["color_owner"], 1.0), 6, Color(1, 0.85, 0.2, 0.9), 2
+		)
+		style_pressed.content_margin_left = 4
+		style_pressed.content_margin_right = 4
+		style_pressed.content_margin_top = 2
+		style_pressed.content_margin_bottom = 2
+		btn.add_theme_stylebox_override("pressed", style_pressed)
+
+		btn.add_theme_font_size_override("font_size", 11)
+		btn.add_theme_color_override("font_color", Color(1, 0.95, 0.85))
+		btn.add_theme_color_override("font_hover_color", Color(1, 1, 0.9))
+
 		btn.pressed.connect(_on_region_pressed.bind(region_id))
-		regions_node.add_child(btn)
+		container.add_child(btn)
+
+		# Troops indicator (small label below button)
+		var troops_lbl = Label.new()
+		troops_lbl.text = "⚔ %d" % data["troops"]
+		troops_lbl.add_theme_font_size_override("font_size", 9)
+		troops_lbl.add_theme_color_override("font_color", Color(0.8, 0.75, 0.6, 0.8))
+		troops_lbl.position = Vector2(-25, 20)
+		container.add_child(troops_lbl)
+
+		_region_buttons[region_id] = {"container": container, "btn": btn, "troops_lbl": troops_lbl}
 
 func _on_region_pressed(region_id: String):
 	if not regions.has(region_id):
@@ -85,15 +149,28 @@ func _on_region_pressed(region_id: String):
 	var data = regions[region_id]
 	var owner_key = data["owner"]
 	var fname = factions[owner_key]["name"] if factions.has(owner_key) else owner_key
+	var symbol = factions[owner_key]["symbol"] if factions.has(owner_key) else ""
 	if not region_name or not region_info:
 		push_error("WorldMap._on_region_pressed: region panel labels are null")
 		return
-	region_name.text = data["name"]
+	region_name.text = "%s %s" % [symbol, data["name"]]
 	region_info.text = "Sahip: %s\nAsker: %d\nGelir: %d/tur" % [fname, data["troops"], data["income"]]
 	attack_btn.visible = owner_key != "ottoman"
 	diplomacy_btn.visible = owner_key != "ottoman"
 	build_btn.visible = owner_key == "ottoman"
 	region_panel.visible = true
+	_highlight_selected(region_id)
+
+func _highlight_selected(selected_id: String):
+	for rid in _region_buttons:
+		var btn_data = _region_buttons[rid]
+		var container = btn_data["container"] as Node2D
+		if rid == selected_id:
+			container.scale = Vector2(1.15, 1.15)
+			container.z_index = 10
+		else:
+			container.scale = Vector2(1.0, 1.0)
+			container.z_index = 0
 
 func _get_selected_region() -> String:
 	var rid = game_state["selected_region"]
@@ -150,6 +227,7 @@ func _on_build():
 		_show_msg("İnşaat tamam! Asker ve gelir arttı.")
 	else:
 		_show_msg("Yetersiz altın! (300 gerekli)")
+	_draw_map()
 	_update_hud()
 
 func _on_end_turn():

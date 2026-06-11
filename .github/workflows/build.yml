@@ -6,20 +6,11 @@ on:
   pull_request:
     branches: [ main, feature/*, open-world-mobile-v2 ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
 
 jobs:
   build-android:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     
     steps:
       - name: 📥 Checkout code
@@ -36,21 +27,22 @@ jobs:
         with:
           packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34 ndk;26b'
 
-      - name: 🐧 Install Godot 4.3
+      - name: 🐧 Download Godot 4.3
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          unzip -q Godot_v4.3-stable_linux.x86_64.zip
+          echo "Downloading Godot..."
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip -O godot.zip
+          unzip -q godot.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
-          echo "Godot version: $(godot --version)"
+          godot --version
 
-      - name: 📦 Install Godot Export Templates
+      - name: 📦 Download Export Templates
         run: |
+          echo "Downloading export templates..."
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
-          unzip -q /tmp/templates.tpz -d /tmp/tpz
-          cp -r /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
-          echo "Templates installed successfully"
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O templates.tpz
+          unzip -q templates.tpz -d templates_extracted
+          cp -r templates_extracted/templates/* ~/.local/share/godot/export_templates/4.3.stable/
           ls ~/.local/share/godot/export_templates/4.3.stable/
 
       - name: 🔑 Generate Debug Keystore

@@ -7,11 +7,14 @@ on:
     branches: [ main, feature/*, open-world-mobile-v2 ]
   workflow_dispatch:
 
+env:
+  ANDROID_SDK_ROOT: /opt/android-sdk
+
 jobs:
   build-android:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,7 +28,22 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: tools platform-tools build-tools;34.0.0 platforms;android-34 ndk;26b
+          cmdline-tools-version: latest
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+            platform-tools
+            ndk;26b
+
+      - name: Verify Android SDK
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "NDK paths:"
+          ls -la $ANDROID_SDK_ROOT/ndk/ 2>/dev/null || echo "No NDK"
+          echo "Build tools:"
+          ls -la $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null || echo "No build-tools"
+          echo "Platforms:"
+          ls -la $ANDROID_SDK_ROOT/platforms/ 2>/dev/null || echo "No platforms"
 
       - name: Download Godot 4.3
         run: |
@@ -64,13 +82,14 @@ jobs:
       - name: Export Android APK
         id: export
         run: |
+          echo "Exporting APK..."
           godot --headless --export-debug "Android" FethiAlem.apk 2>&1 | tee build.log
           if [ -f "FethiAlem.apk" ]; then
             echo "APK EXPORT SUCCESSFUL"
             ls -lh FethiAlem.apk
           else
-            echo "APK export failed"
-            tail -50 build.log
+            echo "APK export failed - checking log:"
+            tail -100 build.log
             exit 1
           fi
 

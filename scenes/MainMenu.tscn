@@ -53,6 +53,11 @@ text = "TARİHÎ NOTLAR"
 custom_minimum_size = Vector2(0, 70)
 theme_override_font_sizes/font_size = 20
 
+[node name="HistoryBtn" type="Button" parent="UI/MenuContainer"]
+text = "TARİHÎ NOTLAR"
+custom_minimum_size = Vector2(0, 70)
+theme_override_font_sizes/font_size = 20
+
 [node name="ContinueBtn" type="Button" parent="UI/MenuContainer"]
 text = "DEVAM ET"
 custom_minimum_size = Vector2(0, 70)

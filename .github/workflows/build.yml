@@ -49,6 +49,16 @@ jobs:
           python3 << 'PYEOF'
           import zipfile
           import os
+          import urllib.request
+          
+          # Download templates
+          print("Downloading templates...")
+          urllib.request.urlretrieve(
+              'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz',
+              '/tmp/templates.tpz'
+          )
+          
+          # Extract to export_templates folder
           os.makedirs(os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable'), exist_ok=True)
           with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
               z.extractall(os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable'))
@@ -64,18 +74,18 @@ jobs:
           import urllib.request
           
           # Download templates if not exists
-          if not os.path.exists('/tmp/templates2.tpz'):
+          if not os.path.exists('/tmp/templates.tpz'):
               print("Downloading templates...")
               urllib.request.urlretrieve(
                   'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz',
-                  '/tmp/templates2.tpz'
+                  '/tmp/templates.tpz'
               )
           
           # Extract android source to android folder
-          with zipfile.ZipFile('/tmp/templates2.tpz', 'r') as z:
-              z.extractall('/tmp/tpz2')
+          with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
+              z.extractall('/tmp/tpz')
           
-          android_zip = '/tmp/tpz2/templates/android_source.zip'
+          android_zip = '/tmp/tpz/templates/android_source.zip'
           if os.path.exists(android_zip):
               with zipfile.ZipFile(android_zip, 'r') as z:
                   z.extractall('android/')
@@ -85,7 +95,7 @@ jobs:
                       print(os.path.join(root, f))
           else:
               print("ERROR: android_source.zip not found!")
-              print(os.listdir('/tmp/tpz2/templates'))
+              print(os.listdir('/tmp/tpz/templates'))
           PYEOF
 
       - name: Generate Keystore

@@ -57,6 +57,7 @@ jobs:
           import zipfile
           import os
           import urllib.request
+          import shutil
           
           # Download templates
           print("Downloading templates...")
@@ -72,11 +73,21 @@ jobs:
           with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
               z.extractall(target_dir)
           
-          print("Templates installed successfully")
-          print("Contents of 4.3.stable/templates/:")
+          print("Templates extracted")
+          
+          # Copy android_source.zip to 4.3.stable/ (required by --install-android-build-template)
           templates_dir = os.path.join(target_dir, 'templates')
-          for item in os.listdir(templates_dir)[:5]:
-              print(f"  {item}")
+          android_src = os.path.join(templates_dir, 'android_source.zip')
+          android_dst = os.path.join(target_dir, 'android_source.zip')
+          
+          if os.path.exists(android_src):
+              shutil.copy(android_src, android_dst)
+              print(f"Copied android_source.zip to {android_dst}")
+          else:
+              print("ERROR: android_source.zip not found in templates!")
+              exit(1)
+          
+          print("Templates installed successfully")
           PYEOF
 
       - name: Generate Keystore

@@ -99,7 +99,7 @@ func build_medieval_metropolis():
 			village.add_child(house)
 			# Çatı
 			var roof = MeshInstance3D.new()
-			var r_mesh = ConeMesh.new(); r_mesh.top_radius = 0; r_mesh.bottom_radius = 15; r_mesh.height = 15
+			var r_mesh = CylinderMesh.new(); r_mesh.top_radius = 0; r_mesh.bottom_radius = 15; r_mesh.height = 15
 			roof.mesh = r_mesh; roof.position = house.position + Vector3(0, 17.5, 0)
 			var r_mat = StandardMaterial3D.new(); r_mat.albedo_color = Color(0.5, 0.1, 0.1)
 			roof.material_override = r_mat
@@ -176,106 +176,6 @@ func show_msg(m):
 	await get_tree().create_timer(3).timeout
 	ui.get_node("Msg").visible = false
 
-func generate_terrain():
-	var terrain_size = 3000
-	var terrain_subdivisions = 100 # For a 3000x3000 terrain, 100 subdivisions means 30x30 units per quad
-	var noise_scale = 0.01
-	var height_multiplier = 200
-
-	var ground_mesh = PlaneMesh.new()
-	ground_mesh.size = Vector2(terrain_size, terrain_size)
-	ground_mesh.subdivide_width = terrain_subdivisions
-	ground_mesh.subdivide_depth = terrain_subdivisions
-
-	var array_mesh = ArrayMesh.new()
-	var arrays = []
-	arrays.resize(ArrayMesh.ARRAY_MAX)
-
-	var vertices = PackedVector3Array()
-	var uvs = PackedVector2Array()
-	var normals = PackedVector3Array()
-
-	var step_x = terrain_size / terrain_subdivisions
-	var step_z = terrain_size / terrain_subdivisions
-
-	for z in range(terrain_subdivisions + 1):
-		for x in range(terrain_subdivisions + 1):
-			var current_x = x * step_x - terrain_size / 2
-			var current_z = z * step_z - terrain_size / 2
-
-			var height = FastNoiseLite.new().get_noise_2d(current_x * noise_scale, current_z * noise_scale) * height_multiplier
-			vertices.append(Vector3(current_x, height, current_z))
-			uvs.append(Vector2(float(x) / terrain_subdivisions, float(z) / terrain_subdivisions))
-			normals.append(Vector3.UP) # Placeholder, will be recalculated later
-
-	for z in range(terrain_subdivisions):
-		for x in range(terrain_subdivisions):
-			var i0 = z * (terrain_subdivisions + 1) + x
-			var i1 = z * (terrain_subdivisions + 1) + x + 1
-			var i2 = (z + 1) * (terrain_subdivisions + 1) + x
-			var i3 = (z + 1) * (terrain_subdivisions + 1) + x + 1
-
-			arrays[ArrayMesh.ARRAY_INDEX] = PackedInt32Array([i0, i2, i1, i1, i2, i3])
-
-	arrays[ArrayMesh.ARRAY_VERTEX] = vertices
-	arrays[ArrayMesh.ARRAY_TEX_UV] = uvs
-	arrays[ArrayMesh.ARRAY_NORMAL] = normals
-
-	array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-
-	var terrain_mesh_instance = MeshInstance3D.new()
-	terrain_mesh_instance.mesh = array_mesh
-	terrain_mesh_instance.material_override = load("res://assets/materials/grass_4k_material.tres") # Assuming you have a material for grass
-	add_child(terrain_mesh_instance)
-
-	# Add collision for the terrain
-	var static_body = StaticBody3D.new()
-	terrain_mesh_instance.add_child(static_body)
-	var collision_shape = CollisionShape3D.new()
-	var trimesh_shape = ConcavePolygonShape3D.new()
-	trimesh_shape.set_faces(vertices)
-	collision_shape.shape = trimesh_shape
-	static_body.add_child(collision_shape)
-
-	# Placeholder for forests and other details (will be added later)
-	var forest_count = 15
-	var tree_trunk_mat = StandardMaterial3D.new()
-	tree_trunk_mat.albedo_color = Color(0.4, 0.2, 0.1)
-
-	var tree_leaves_mat = StandardMaterial3D.new()
-	tree_leaves_mat.albedo_color = Color(0.2, 0.6, 0.2)
-
-	for i in range(forest_count):
-		var tree_pos = Vector3(randf_range(-terrain_size/2, terrain_size/2), 0, randf_range(-terrain_size/2, terrain_size/2))
-
-		# Get terrain height at tree_pos
-		var ray_origin = Vector3(tree_pos.x, 1000, tree_pos.z)
-		var ray_target = Vector3(tree_pos.x, -1000, tree_pos.z)
-		var space_state = get_world_3d().direct_space_state
-		var query = PhysicsRayQueryParameters3D.new()
-		query.from = ray_origin
-		query.to = ray_target
-		var result = space_state.intersect_ray(query)
-
-		if result:
-			tree_pos.y = result.position.y
-
-		var trunk = MeshInstance3D.new()
-		trunk.mesh = CylinderMesh.new()
-		trunk.mesh.top_radius = 5
-		trunk.mesh.bottom_radius = 5
-		var trunk_height = randf_range(20, 40)
-		trunk.mesh.height = trunk_height
-		trunk.position = tree_pos + Vector3(0, trunk_height / 2, 0)
-		trunk.material_override = tree_trunk_mat
-		add_child(trunk)
-
-		var leaves = MeshInstance3D.new()
-		leaves.mesh = SphereMesh.new()
-		leaves.mesh.radius = randf_range(10, 20)
-		leaves.position = tree_pos + Vector3(0, trunk_height + leaves.mesh.radius / 2, 0)
-		leaves.material_override = tree_leaves_mat
-		add_child(leaves)
 
 func _on_end_turn_pressed():
 	end_turn()

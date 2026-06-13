@@ -73,19 +73,10 @@ jobs:
           import os
           import urllib.request
           
-          # Download templates if not exists
-          if not os.path.exists('/tmp/templates.tpz'):
-              print("Downloading templates...")
-              urllib.request.urlretrieve(
-                  'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz',
-                  '/tmp/templates.tpz'
-              )
+          # Templates are in ~/.local/share/godot/export_templates/4.3.stable/
+          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          android_zip = os.path.join(templates_dir, 'android_source.zip')
           
-          # Extract android source to android folder
-          with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
-              z.extractall('/tmp/tpz')
-          
-          android_zip = '/tmp/tpz/templates/android_source.zip'
           if os.path.exists(android_zip):
               with zipfile.ZipFile(android_zip, 'r') as z:
                   z.extractall('android/')
@@ -94,8 +85,8 @@ jobs:
                   for f in files:
                       print(os.path.join(root, f))
           else:
-              print("ERROR: android_source.zip not found!")
-              print(os.listdir('/tmp/tpz/templates'))
+              print(f"ERROR: {android_zip} not found!")
+              print("Available files:", os.listdir(templates_dir) if os.path.exists(templates_dir) else "folder missing")
           PYEOF
 
       - name: Generate Keystore

@@ -1,7 +1,6 @@
 ## Kaynak Türleri Enum
 ## Oyun içindeki tüm kaynak türlerini tanımlar
 
-class_name ResourceTypes
 extends RefCounted
 
 enum Type {

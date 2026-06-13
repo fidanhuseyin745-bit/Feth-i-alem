@@ -2,7 +2,6 @@
 ## Oyunun kaynak ekonomisini yönetir
 ## Mobil performans için optimize edilmiştir (minimum döngü)
 
-class_name ResourceManager
 extends Node
 
 ## Sinyaller

@@ -101,7 +101,6 @@ jobs:
           3. Install the APK
           4. Enjoy!
           
-          ---
           Built with ❤️ using Godot 4.3
           EOF
           cat RELEASE_NOTES.md
@@ -125,7 +124,7 @@ jobs:
           echo "📄 Total Files: $(find . -type f | wc -l)"
           echo ""
           echo "🎮 Game Scripts:"
-          find scenes/3d/scripts -name "*.gd" -exec basename {} \; | sort
+          find scenes/3d -name "*.gd" -exec basename {} \; | sort
           echo ""
           echo "🖥️ UI Scripts:"
           find scenes/ui -name "*.gd" -exec basename {} \; | sort

@@ -77,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: FethiAlem-debug.apk
-          path: FethiAethiAlem.apk
+          path: FethiAlem.apk
           retention-days: 30
 
       - name: 📝 Create Release Notes

@@ -57,7 +57,6 @@ jobs:
           import zipfile
           import os
           import urllib.request
-          import shutil
           
           # Download templates
           print("Downloading templates...")
@@ -66,68 +65,18 @@ jobs:
               '/tmp/templates.tpz'
           )
           
-          # Extract to export_templates folder - KEEP the templates/ prefix structure
+          # Extract to export_templates folder
           target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
           os.makedirs(target_dir, exist_ok=True)
           
           with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
               z.extractall(target_dir)
           
-          print("Templates installed")
-          print("Contents of 4.3.stable:")
-          for item in os.listdir(target_dir):
+          print("Templates installed successfully")
+          print("Contents of 4.3.stable/templates/:")
+          templates_dir = os.path.join(target_dir, 'templates')
+          for item in os.listdir(templates_dir)[:5]:
               print(f"  {item}")
-          
-          # Copy android_source.zip to 4.3.stable (Godot may expect it there)
-          templates_subdir = os.path.join(target_dir, 'templates')
-          android_src = os.path.join(templates_subdir, 'android_source.zip')
-          if os.path.exists(android_src):
-              shutil.copy(android_src, os.path.join(target_dir, 'android_source.zip'))
-              print(f"Copied android_source.zip to {target_dir}")
-          else:
-              print("android_source.zip not in templates subfolder")
-              print("Available files:", os.listdir(templates_subdir) if os.path.exists(templates_subdir) else "missing")
-          PYEOF
-
-      - name: Prepare Android Build
-        run: |
-          python3 << 'PYEOF'
-          import zipfile
-          import os
-          
-          print("=== Current directory:", os.getcwd())
-          
-          # Create android folder if not exists
-          if not os.path.exists('android'):
-              print("Creating android/ folder...")
-              os.makedirs('android')
-          
-          # android_source.zip is in templates/templates/
-          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
-          android_zip = os.path.join(templates_dir, 'templates', 'android_source.zip')
-          
-          if not os.path.exists(android_zip):
-              print(f"ERROR: {android_zip} not found!")
-              print("Available in templates:", os.listdir(os.path.join(templates_dir, 'templates')) if os.path.exists(os.path.join(templates_dir, 'templates')) else "missing")
-              exit(1)
-          
-          print(f"Found android_source.zip: {android_zip}")
-          print(f"Size: {os.path.getsize(android_zip) / 1024 / 1024:.1f} MB")
-          
-          # Extract to android/ folder
-          print("Extracting to android/ folder...")
-          with zipfile.ZipFile(android_zip, 'r') as z:
-              z.extractall('android/')
-          print("Extraction complete!")
-          
-          # Verify files
-          for root, dirs, files in os.walk('android/libs'):
-              for f in files:
-                  fpath = os.path.join(root, f)
-                  size = os.path.getsize(fpath) / (1024*1024)
-                  print(f"  {fpath} ({size:.1f} MB)")
-          
-          print("=== Android Build Ready ===")
           PYEOF
 
       - name: Generate Keystore
@@ -139,19 +88,14 @@ jobs:
           # Disable GUT plugin for headless build
           sed -i 's|res://addons/gut/plugin.cfg||' project.godot
           
-          # Update export presets with keystore only (NOT custom templates)
+          # Update export presets with keystore
           python3 << 'PYEOF'
-          import os
-          
           with open('export_presets.cfg', 'r') as f:
               content = f.read()
           
-          # Update keystore
           content = content.replace('keystore/debug=""', 'keystore/debug="/tmp/debug.keystore"')
           content = content.replace('keystore/debug_user=""', 'keystore/debug_user="androiddebugkey"')
           content = content.replace('keystore/debug_password=""', 'keystore/debug_password="android"')
-          
-          # Keep custom_template empty - use global templates
           
           with open('export_presets.cfg', 'w') as f:
               f.write(content)
@@ -160,35 +104,15 @@ jobs:
           PYEOF
           
           echo "Checking global templates:"
-          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ | head -10
-          
-          echo "android/libs files:"
-          find android/libs -name "*.aar" -exec ls -lh {} \;
+          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ | head -5
 
       - name: Export APK
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
-          GODOT_OUTPUT_ON_ERROR: "1"
         run: |
-          echo "=== Environment ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-          echo ""
-          echo "android/libs/debug:"
-          ls -la android/libs/debug/ 2>/dev/null || echo "empty"
-          echo ""
-          echo "android/libs/release:"
-          ls -la android/libs/release/ 2>/dev/null || echo "empty"
-          echo ""
-          echo "android folder:"
-          ls -la android/ 2>/dev/null || echo "missing"
-          echo ""
-          echo "export_presets.cfg:"
-          grep -E "custom_template|keystore|gradle_build|platform" export_presets.cfg
-          echo ""
-          echo "=== Running Godot export with verbose ==="
-          godot --headless --export-debug "Android" FethiAlem.apk 2>&1 || true
+          echo "=== Running Godot export with --install-android-build-template ==="
+          godot --headless --install-android-build-template --export-debug "Android" FethiAlem.apk
           
           echo "=== Checking for APK ==="
           ls -lh FethiAlem.apk 2>/dev/null || echo "No APK generated"

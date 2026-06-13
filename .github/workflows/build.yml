@@ -39,10 +39,6 @@ jobs:
 
       - name: ⚙️ Configure Project
         run: |
-          # Disable editor plugins that might interfere with headless export
-          sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
-          echo "Editor plugins disabled"
-          
           # Configure debug keystore in export_presets.cfg
           sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
           sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
@@ -50,28 +46,35 @@ jobs:
           echo "Export presets configured"
           grep "keystore" export_presets.cfg
 
+      - name: ⬇️ Download Godot and Export Templates
+        run: |
+          mkdir -p /tmp/godot_exec
+          curl -L https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot_exec
+          mv /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64 /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64.bin
+          chmod +x /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64.bin
+
+          mkdir -p ~/.local/share/godot/templates/4.3.stable
+          curl -L https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -o /tmp/templates.tpz
+          unzip -q /tmp/templates.tpz -d ~/.local/share/godot/templates/4.3.stable
+          echo "Godot executable and export templates downloaded and installed."
+
       - name: 🚀 Export Android APK
-        uses: firebelley/godot-export@v5.2.1
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
-          relative_project_path: ./
-          archive_output: false
-          export_debug: true
+        run: |
+          /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64.bin --headless --export-debug Android FethiAlem.apk
 
       - name: 📊 Show APK Info
         run: |
-          APK_PATH=$(find . -name "*.apk" | head -n 1)
-          if [ -z "$APK_PATH" ]; then
-            echo "❌ APK not found"
+          APK_PATH="FethiAlem.apk"
+          if [ ! -f "$APK_PATH" ]; then
+            echo "❌ APK not found at $APK_PATH"
             exit 1
           fi
-          cp "$APK_PATH" FethiAlem.apk
           echo "APK Information"
-          file FethiAlem.apk
-          ls -lh FethiAlem.apk
+          file "$APK_PATH"
+          ls -lh "$APK_PATH"
           
-          unzip -l FethiAlem.apk 2>/dev/null | head -20
+          unzip -l "$APK_PATH" 2>/dev/null | head -20
 
       - name: 📦 Upload Debug APK
         uses: actions/upload-artifact@v4

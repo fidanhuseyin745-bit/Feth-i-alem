@@ -138,27 +138,30 @@ jobs:
           # Disable GUT plugin for headless build
           sed -i 's|res://addons/gut/plugin.cfg||' project.godot
           
-          # Update export presets with keystore
+          # Update export presets with keystore AND custom template paths
           python3 << 'PYEOF'
           import os
           
           with open('export_presets.cfg', 'r') as f:
               content = f.read()
           
+          # Update keystore
           content = content.replace('keystore/debug=""', 'keystore/debug="/tmp/debug.keystore"')
           content = content.replace('keystore/debug_user=""', 'keystore/debug_user="androiddebugkey"')
           content = content.replace('keystore/debug_password=""', 'keystore/debug_password="android"')
           
+          # Update custom templates - point to our extracted libs
+          content = content.replace('custom_template/debug=""', 'custom_template/debug="android/libs/debug/godot-lib.template_debug.aar"')
+          content = content.replace('custom_template/release=""', 'custom_template/release="android/libs/release/godot-lib.template_release.aar"')
+          
           with open('export_presets.cfg', 'w') as f:
               f.write(content)
           
-          print("Export presets configured")
-          print("android/libs contents:")
-          for f in os.listdir('android/libs/debug'):
-              print(f"  debug/{f}")
-          for f in os.listdir('android/libs/release'):
-              print(f"  release/{f}")
+          print("Export presets configured with custom templates")
           PYEOF
+          
+          echo "export_presets.cfg custom_template:"
+          grep custom_template export_presets.cfg
 
       - name: Export APK
         env:

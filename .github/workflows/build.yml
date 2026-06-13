@@ -43,13 +43,20 @@ jobs:
 
       - name: Prepare Android Build
         run: |
-          # Copy android templates to project
-          cp -r /tmp/tpz/templates/android_source.zip android_template.zip
-          unzip -q android_template.zip -d android_project/
-          cp -r android_project/* android/
-          rm -rf android_template.zip android_project/
-          echo "Android templates copied"
-          ls android/libs/
+          python3 << 'PYEOF'
+          import zipfile
+          import os
+          import shutil
+          
+          # Extract android source to android folder
+          with zipfile.ZipFile('/tmp/tpz/templates/android_source.zip', 'r') as z:
+              z.extractall('android/')
+          
+          print("Android templates extracted")
+          for root, dirs, files in os.walk('android/libs'):
+              for f in files:
+                  print(os.path.join(root, f))
+          PYEOF
 
       - name: Generate Keystore
         run: |

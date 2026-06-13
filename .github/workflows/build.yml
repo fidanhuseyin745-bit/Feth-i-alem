@@ -113,14 +113,16 @@ jobs:
 
       - name: 📝 Create Release Notes
         run: |
-          cat > RELEASE_NOTES.md << 'EOF'
+          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          cat > RELEASE_NOTES.md << EOF
 # 🎮 Feth-i Alem - Build ${{ github.sha }}
 
 ## 📱 APK Information
 - Build Type: Debug
 - Godot Version: 4.3
-- Build Date: ${{ github.event.head_commit.timestamp }}
+- Build Date: $BUILD_DATE
 - Commit: ${{ github.sha }}
+- Workflow: ${{ github.workflow }}
 
 ## 🎯 Game Features
 - 3D Open World Map (800x800)

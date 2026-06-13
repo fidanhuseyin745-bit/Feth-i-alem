@@ -45,10 +45,24 @@ jobs:
 
       - name: Configure Project
         run: |
-          sed -i 's/enabled=PackedStringArray("res:\/\/addons\/gut\/plugin.cfg")/enabled=PackedStringArray()/' project.godot
-          sed -i 's/keystore\/debug=""/keystore\/debug="\/tmp\/debug.keystore"/' export_presets.cfg
-          sed -i 's/keystore\/debug_user=""/keystore\/debug_user="androiddebugkey"/' export_presets.cfg
-          sed -i 's/keystore\/debug_password=""/keystore\/debug_password="android"/' export_presets.cfg
+          # Disable GUT plugin for headless build
+          sed -i 's|res://addons/gut/plugin.cfg||' project.godot
+          
+          # Update export presets with keystore (using Python for reliable sed)
+          python3 << 'PYEOF'
+          with open('export_presets.cfg', 'r') as f:
+              content = f.read()
+          
+          content = content.replace('keystore/debug=""', 'keystore/debug="/tmp/debug.keystore"')
+          content = content.replace('keystore/debug_user=""', 'keystore/debug_user="androiddebugkey"')
+          content = content.replace('keystore/debug_password=""', 'keystore/debug_password="android"')
+          
+          with open('export_presets.cfg', 'w') as f:
+              f.write(content)
+          PYEOF
+          
+          echo "Export presets configured"
+          grep keystore export_presets.cfg
 
       - name: Export APK
         run: |

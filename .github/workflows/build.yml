@@ -95,7 +95,16 @@ jobs:
           import os
           import urllib.request
           
-          print("=== Preparing Android Build ===")
+          print("=== Current directory:", os.getcwd())
+          print("=== Contents:", os.listdir('.'))
+          
+          # Create android folder if not exists
+          if not os.path.exists('android'):
+              print("Creating android/ folder...")
+              os.makedirs('android')
+          
+          print("=== android folder exists:", os.path.exists('android'))
+          print("=== android contents before:", os.listdir('android')[:5] if os.path.exists('android') else [])
           
           # Download android_source.zip directly
           android_source_url = 'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_android_source.zip'
@@ -103,24 +112,20 @@ jobs:
           
           print("Downloading android_source.zip...")
           urllib.request.urlretrieve(android_source_url, android_source_path)
-          print(f"Downloaded to {android_source_path}")
+          print(f"Downloaded ({os.path.getsize(android_source_path) / 1024 / 1024:.1f} MB)")
           
           # Extract to android/ folder
-          if os.path.exists('android'):
-              print("Extracting to android/ folder...")
-              with zipfile.ZipFile(android_source_path, 'r') as z:
-                  z.extractall('android/')
-              print("Extraction complete!")
-              
-              # Verify files
-              for root, dirs, files in os.walk('android/libs'):
-                  for f in files:
-                      fpath = os.path.join(root, f)
-                      size = os.path.getsize(fpath) / (1024*1024)
-                      print(f"  {fpath} ({size:.1f} MB)")
-          else:
-              print("ERROR: android/ folder not found!")
-              exit(1)
+          print("Extracting to android/ folder...")
+          with zipfile.ZipFile(android_source_path, 'r') as z:
+              z.extractall('android/')
+          print("Extraction complete!")
+          
+          # Verify files
+          for root, dirs, files in os.walk('android/libs'):
+              for f in files:
+                  fpath = os.path.join(root, f)
+                  size = os.path.getsize(fpath) / (1024*1024)
+                  print(f"  {fpath} ({size:.1f} MB)")
           
           print("=== Android Build Ready ===")
           PYEOF

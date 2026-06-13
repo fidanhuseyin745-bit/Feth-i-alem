@@ -31,10 +31,14 @@
 
 ```
 Feth-i-alem/
-├── PROJ_CONTEXT.md              # Bu dosya - proje bağlam ve kılavuz
+├── PROJ_CONTEXT.md              # Proje bağlam ve kılavuz
 ├── README.md                     # Proje dokümantasyonu
-├── project.godot                  # Godot proje konfigürasyonu
+├── project.godot                  # Godot proje konfigürasyonu (Autoload: ResourceManager, ResourceTypes)
 ├── export_presets.cfg            # Android export ayarları
+│
+├── autoloads/                    # Singleton Autoload sistemi
+│   ├── ResourceTypes.gd         # Kaynak türleri enum
+│   └── ResourceManager.gd       # Kaynak yönetim sistemi
 │
 ├── scenes/
 │   ├── MainMenu.tscn             # Ana menü sahnesi
@@ -74,10 +78,11 @@ Feth-i-alem/
 ### Singleton (Autoload) Sistemi
 ```
 Oyunun temel sistemleri Autoload olarak yüklenecek:
-├── GameState        → Oyuncu verisi, altın, tur sayısı, bölgeler
-├── ResourceManager  → Kaynak toplama ve ekonomi yönetimi  
+├── ResourceManager  → Kaynak toplama ve ekonomi yönetimi ✅
+├── ResourceTypes    → Kaynak türleri enum ✅
 ├── ArmyManager      → Ordu ve birim yönetimi
 ├── CityManager      → Şehir ve kale veritabanı
+├── GameState        → Oyuncu verisi, altın, tur sayısı, bölgeler
 └── AudioManager      → Ses efekti ve müzik yönetimi
 ```
 
@@ -93,6 +98,28 @@ Kaynak türleri Resource (.tres) dosyaları olarak tanımlanacak:
 │       ├── Cavalry.tres
 │       └── Archer.tres
 ```
+
+---
+
+## 📊 Mevcut Autoload Sistemi
+
+| Sistem | Durum | Dosya |
+|--------|-------|-------|
+| ResourceManager | ✅ Hazır | `autoloads/ResourceManager.gd` |
+| ResourceTypes | ✅ Hazır | `autoloads/ResourceTypes.gd` |
+| ArmyManager | ⏳ Planlanıyor | - |
+| CityManager | ⏳ Planlanıyor | - |
+| GameState | ⏳ Mevcut | `scenes/scripts/game_state.gd` |
+
+### Kaynak Türleri
+| Tür | Başlangıç | Üretim/Tur | Max |
+|-----|-----------|------------|-----|
+| 🪙 Altın | 5000 | +100 | 999999 |
+| 🌾 Yiyecek | 1000 | +50 | 50000 |
+| 📦 Malzeme | 500 | +25 | 25000 |
+| 🪵 Odun | 300 | +15 | 15000 |
+| ⚙️ Demir | 100 | +10 | 10000 |
+| 🐴 At | 50 | +5 | 5000 |
 
 ---
 
@@ -199,11 +226,13 @@ GitHub Actions ile otomatik:
 
 ## 📝 Geliştirme Aşamaları
 
-### Aşama 1: Temel Sistemler (Güncel)
+### Aşama 1: Temel Sistemler (Tamamlandı ✅)
 - [x] Proje yapısı kurulumu
 - [x] GameState temel sınıfı
-- [ ] **ResourceManager Singleton** ← Sonraki hedef
-- [ ] Kaynak toplama mekanizması
+- [x] **ResourceTypes enum** ✅
+- [x] **ResourceManager Singleton** ✅
+- [x] Kaynak toplama mekanizması
+- [x] GUT birim testleri
 
 ### Aşama 2: Ordu Sistemi
 - [ ] ArmyManager Singleton

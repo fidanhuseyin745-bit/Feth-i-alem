@@ -1,59 +1,67 @@
-name: 🎮 Build Android APK
+name: Build Feth-i Alem
 
 on:
   push:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [ main, feature/*, open-world-mobile-v2 ]
   pull_request:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [ main, feature/*, open-world-mobile-v2 ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
+
+env:
+  ANDROID_SDK_ROOT: /opt/android-sdk
 
 jobs:
   build-android:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: 📱 Setup Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34 ndk;26b'
+          cmdline-tools-version: latest
+          packages: |
+            platforms;android-34
+            build-tools;34.0.0
+            platform-tools
+            ndk;26b
 
-      - name: 🐧 Install Godot 4.3
+      - name: Verify Android SDK
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          unzip -q Godot_v4.3-stable_linux.x86_64.zip
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "NDK paths:"
+          ls -la $ANDROID_SDK_ROOT/ndk/ 2>/dev/null || echo "No NDK"
+          echo "Build tools:"
+          ls -la $ANDROID_SDK_ROOT/build-tools/ 2>/dev/null || echo "No build-tools"
+          echo "Platforms:"
+          ls -la $ANDROID_SDK_ROOT/platforms/ 2>/dev/null || echo "No platforms"
+
+      - name: Download Godot 4.3
+        run: |
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip -O godot.zip
+          unzip -q godot.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
-          echo "Godot version: $(godot --version)"
+          godot --version
 
-      - name: 📦 Install Godot Export Templates
+      - name: Download Export Templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
-          unzip -q /tmp/templates.tpz -d /tmp/tpz
-          cp -r /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
-          echo "Templates installed successfully"
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O templates.tpz
+          unzip -q templates.tpz -d templates_extracted
+          cp -r templates_extracted/templates/* ~/.local/share/godot/export_templates/4.3.stable/
           ls ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: 🔑 Generate Debug Keystore
+      - name: Generate Debug Keystore
         run: |
           keytool -genkey -v \
             -keystore /tmp/debug.keystore \
@@ -61,116 +69,38 @@ jobs:
             -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass android -keypass android \
             -dname "CN=Feth-i Alem, O=Feth-i Alem Game, C=TR"
-          echo "Keystore created"
 
-      - name: ⚙️ Configure Project
+      - name: Configure Project
         run: |
-          # Remove GUT plugin reference for headless build
           sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
-          echo "=== Editor plugins disabled ==="
-          
-          # Configure export presets with keystore
           cat export_presets.cfg | sed \
             -e 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' \
             -e 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' \
             -e 's|keystore/debug_password=""|keystore/debug_password="android"|' \
             > export_presets.cfg.tmp && mv export_presets.cfg.tmp export_presets.cfg
-          
-          echo "Export presets configured"
-          grep "keystore" export_presets.cfg
 
-      - name: 🚀 Export Android APK
+      - name: Export Android APK
         id: export
         run: |
-          echo "Starting APK export..."
+          echo "Exporting APK..."
           godot --headless --export-debug "Android" FethiAlem.apk 2>&1 | tee build.log
-          
           if [ -f "FethiAlem.apk" ]; then
-            echo "✅ APK EXPORT SUCCESSFUL!"
+            echo "APK EXPORT SUCCESSFUL"
             ls -lh FethiAlem.apk
           else
-            echo "❌ APK export failed"
-            echo "Build log:"
-            tail -50 build.log
+            echo "APK export failed - checking log:"
+            tail -100 build.log
             exit 1
           fi
 
-      - name: 📊 Show APK Info
+      - name: Show APK Info
         run: |
-          echo "=== APK Information ==="
           file FethiAlem.apk
           ls -lh FethiAlem.apk
-          
-          # Get APK details
-          unzip -l FethiAlem.apk 2>/dev/null | head -20
 
-      - name: 📦 Upload Debug APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: FethiAlem-${{ github.sha }}-debug.apk
+          name: FethiAlem-debug-apk
           path: FethiAlem.apk
           retention-days: 30
-
-      - name: 📝 Create Release Notes
-        run: |
-          cat > RELEASE_NOTES.md << 'EOF'
-# 🎮 Feth-i Alem - Build ${{ github.sha }}
-
-## 📱 APK Information
-- Build Type: Debug
-- Godot Version: 4.3
-- Build Date: ${{ github.event.head_commit.timestamp }}
-- Commit: ${{ github.sha }}
-
-## 🎯 Game Features
-- 3D Open World Map (800x800)
-- 30+ Cities
-- 10+ Professions
-- RTS Controls
-- Mobile UI with Joystick
-- Siege System
-- Enemy AI
-
-## 📦 Files Included
-- Main Game Scripts: 14 files
-- UI Scripts: 3 files
-- 3D Scene: MainGame3D.tscn
-
-## 🛠️ How to Install
-1. Download the APK
-2. Enable "Install from unknown sources" on your Android device
-3. Install the APK
-4. Enjoy!
-
----
-Built with ❤️ using Godot 4.3
-EOF
-          cat RELEASE_NOTES.md
-
-      - name: 📤 Upload Release Notes
-        uses: actions/upload-artifact@v4
-        with:
-          name: Release-Notes
-          path: RELEASE_NOTES.md
-
-  # Alternative build info
-  build-info:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: 📋 Project Summary
-        run: |
-          echo "=== Feth-i Alem Project ==="
-          echo ""
-          echo "📁 Project Size: $(du -sh . | cut -f1)"
-          echo "📄 Total Files: $(find . -type f | wc -l)"
-          echo ""
-          echo "🎮 Game Scripts:"
-          find scenes/3d/scripts -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🖥️ UI Scripts:"
-          find scenes/ui -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🗺️ Scenes:"
-          find scenes -name "*.tscn" -exec basename {} \; | sort

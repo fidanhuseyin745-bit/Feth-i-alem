@@ -129,14 +129,26 @@ jobs:
       - name: Export APK
         run: |
           echo "=== Checking environment ==="
+          echo "Templates folder:"
           ls -la ~/.local/share/godot/export_templates/4.3.stable/ 2>/dev/null || echo "Templates folder missing"
-          ls -la android/libs/debug/ 2>/dev/null
-          
+          echo ""
+          echo "Templates subfolder:"
+          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ 2>/dev/null || echo "No templates subfolder"
+          echo ""
+          echo "android/libs/debug:"
+          ls -la android/libs/debug/ 2>/dev/null || echo "debug folder empty"
+          echo ""
+          echo "android/libs/release:"
+          ls -la android/libs/release/ 2>/dev/null || echo "release folder empty"
+          echo ""
+          echo "export_presets.cfg custom_template:"
+          grep "custom_template" export_presets.cfg
+          echo ""
           echo "=== Running Godot export ==="
           godot --headless --export-debug "Android" FethiAlem.apk
           
           echo "=== Checking for APK ==="
-          ls -lh FethiAlem.apk 2>/dev/null || echo "No APK generated - check errors above"
+          ls -lh FethiAlem.apk 2>/dev/null || echo "No APK generated"
 
       - name: Check APK
         run: |

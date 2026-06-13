@@ -1,10 +1,11 @@
+---
 name: 🎮 Build Android APK
 
 on:
   push:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [main, open-world-mobile-v2]
   pull_request:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [main, open-world-mobile-v2]
   workflow_dispatch:
 
 jobs:
@@ -39,16 +40,12 @@ jobs:
 
       - name: ⚙️ Configure Project
         run: |
-          # Remove GUT plugin reference for headless build
           sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
-          echo "=== Editor plugins disabled ==="
+          echo "Editor plugins disabled"
           
-          # Configure export presets with keystore
-          cat export_presets.cfg | sed \
-            -e 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' \
-            -e 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' \
-            -e 's|keystore/debug_password=""|keystore/debug_password="android"|' \
-            > export_presets.cfg.tmp && mv export_presets.cfg.tmp export_presets.cfg
+          sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
+          sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
+          sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
           
           echo "Export presets configured"
           grep "keystore" export_presets.cfg
@@ -64,65 +61,49 @@ jobs:
 
       - name: 📊 Show APK Info
         run: |
-          # The firebelley action exports to build/Android/ (default) or based on preset
-          # We need to find the exported APK. Assuming it's in the root or build dir.
-          # Based on previous script, user expected FethiAlem.apk in root.
-          # firebelley/godot-export usually puts it in a subdirectory or root.
-          # Let's check common locations.
           APK_PATH=$(find . -name "*.apk" | head -n 1)
           if [ -z "$APK_PATH" ]; then
             echo "❌ APK not found"
             exit 1
           fi
           cp "$APK_PATH" FethiAlem.apk
-          echo "=== APK Information ==="
+          echo "APK Information"
           file FethiAlem.apk
           ls -lh FethiAlem.apk
           
-          # Get APK details
           unzip -l FethiAlem.apk 2>/dev/null | head -20
 
       - name: 📦 Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: FethiAlem-${{ github.sha }}-debug.apk
+          name: FethiAlem-debug.apk
           path: FethiAlem.apk
           retention-days: 30
 
       - name: 📝 Create Release Notes
         run: |
           cat > RELEASE_NOTES.md << 'EOF'
-# 🎮 Feth-i Alem - Build ${{ github.sha }}
-
-## 📱 APK Information
-- Build Type: Debug
-- Godot Version: 4.3
-- Build Date: ${{ github.event.head_commit.timestamp }}
-- Commit: ${{ github.sha }}
-
-## 🎯 Game Features
-- 3D Open World Map (800x800)
-- 30+ Cities
-- 10+ Professions
-- RTS Controls
-- Mobile UI with Joystick
-- Siege System
-- Enemy AI
-
-## 📦 Files Included
-- Main Game Scripts: 14 files
-- UI Scripts: 3 files
-- 3D Scene: MainGame3D.tscn
-
-## 🛠️ How to Install
-1. Download the APK
-2. Enable "Install from unknown sources" on your Android device
-3. Install the APK
-4. Enjoy!
-
----
-Built with ❤️ using Godot 4.3
-EOF
+          # 🎮 Feth-i Alem - Build
+          
+          ## 📱 APK Information
+          - Build Type: Debug
+          - Godot Version: 4.3
+          
+          ## 🎯 Game Features
+          - 3D Open World Map
+          - 30+ Cities
+          - RTS Controls
+          - Mobile UI with Joystick
+          
+          ## 🛠️ How to Install
+          1. Download the APK
+          2. Enable "Install from unknown sources" on your Android device
+          3. Install the APK
+          4. Enjoy!
+          
+          ---
+          Built with ❤️ using Godot 4.3
+          EOF
           cat RELEASE_NOTES.md
 
       - name: 📤 Upload Release Notes
@@ -131,7 +112,6 @@ EOF
           name: Release-Notes
           path: RELEASE_NOTES.md
 
-  # Alternative build info
   build-info:
     runs-on: ubuntu-latest
     steps:
@@ -139,7 +119,7 @@ EOF
       
       - name: 📋 Project Summary
         run: |
-          echo "=== Feth-i Alem Project ==="
+          echo "Feth-i Alem Project"
           echo ""
           echo "📁 Project Size: $(du -sh . | cut -f1)"
           echo "📄 Total Files: $(find . -type f | wc -l)"

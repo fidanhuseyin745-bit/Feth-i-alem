@@ -138,8 +138,10 @@ jobs:
           # Disable GUT plugin for headless build
           sed -i 's|res://addons/gut/plugin.cfg||' project.godot
           
-          # Update export presets with keystore (using Python for reliable sed)
+          # Update export presets with keystore
           python3 << 'PYEOF'
+          import os
+          
           with open('export_presets.cfg', 'r') as f:
               content = f.read()
           
@@ -149,10 +151,14 @@ jobs:
           
           with open('export_presets.cfg', 'w') as f:
               f.write(content)
-          PYEOF
           
-          echo "Export presets configured"
-          grep keystore export_presets.cfg
+          print("Export presets configured")
+          print("android/libs contents:")
+          for f in os.listdir('android/libs/debug'):
+              print(f"  debug/{f}")
+          for f in os.listdir('android/libs/release'):
+              print(f"  release/{f}")
+          PYEOF
 
       - name: Export APK
         env:

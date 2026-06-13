@@ -169,6 +169,7 @@ jobs:
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
           ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+          GODOT_OUTPUT_ON_ERROR: "1"
         run: |
           echo "=== Environment ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
@@ -180,11 +181,14 @@ jobs:
           echo "android/libs/release:"
           ls -la android/libs/release/ 2>/dev/null || echo "empty"
           echo ""
-          echo "export_presets.cfg:"
-          grep -E "custom_template|keystore|gradle_build" export_presets.cfg
+          echo "android folder:"
+          ls -la android/ 2>/dev/null || echo "missing"
           echo ""
-          echo "=== Running Godot export ==="
-          godot --headless --export-debug "Android" FethiAlem.apk
+          echo "export_presets.cfg:"
+          grep -E "custom_template|keystore|gradle_build|platform" export_presets.cfg
+          echo ""
+          echo "=== Running Godot export with verbose ==="
+          godot --headless --export-debug "Android" FethiAlem.apk 2>&1 || true
           
           echo "=== Checking for APK ==="
           ls -lh FethiAlem.apk 2>/dev/null || echo "No APK generated"

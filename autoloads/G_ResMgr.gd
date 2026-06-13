@@ -70,8 +70,8 @@ func get_all_resources() -> Dictionary:
 
 ## Kaynak miktarını ayarla
 func set_resource(type: G_ResTypes.Type, amount: int) -> void:
-	var clamped := clampi(amount, 0, _max_resources.get(type, 999999))
-	var old := _resources.get(type, 0)
+	var clamped: int = clampi(amount, 0, _max_resources.get(type, 999999))
+	var old: int = _resources.get(type, 0)
 	if old != clamped:
 		_resources[type] = clamped
 		_calculate_total()
@@ -84,8 +84,8 @@ func set_resource(type: G_ResTypes.Type, amount: int) -> void:
 func add_resource(type: G_ResTypes.Type, amount: int) -> bool:
 	if amount <= 0:
 		return false
-	var current := get_resource(type)
-	var new_amount := mini(current + amount, _max_resources.get(type, 999999))
+	var current: int = get_resource(type)
+	var new_amount: int = mini(current + amount, _max_resources.get(type, 999999))
 	if new_amount > current:
 		_resources[type] = new_amount
 		_calculate_total()
@@ -99,7 +99,7 @@ func add_resource(type: G_ResTypes.Type, amount: int) -> bool:
 func spend_resource(type: G_ResTypes.Type, amount: int) -> bool:
 	if amount <= 0:
 		return true
-	var current := get_resource(type)
+	var current: int = get_resource(type)
 	if current >= amount:
 		_resources[type] = current - amount
 		_calculate_total()
@@ -127,11 +127,11 @@ func spend_resources(costs: Dictionary) -> bool:
 
 ## Tur sonu üretimini uygula
 func process_turn_production() -> Dictionary:
-	var produced := {}
+	var produced: Dictionary = {}
 	for type in _production_rates:
 		var rate: int = _production_rates[type]
 		if rate > 0:
-			var added := mini(rate, _max_resources.get(type, 999999) - get_resource(type))
+			var added: int = mini(rate, _max_resources.get(type, 999999) - get_resource(type))
 			if added > 0:
 				_resources[type] = get_resource(type) + added
 				produced[type] = added
@@ -187,8 +187,8 @@ func set_max_resource(type: G_ResTypes.Type, max_amount: int) -> void:
 
 ## Kaynak yüzdesini al (0.0 - 1.0)
 func get_resource_percentage(type: G_ResTypes.Type) -> float:
-	var current := get_resource(type)
-	var max_val := get_max_resource(type)
+	var current: int = get_resource(type)
+	var max_val: int = get_max_resource(type)
 	if max_val <= 0:
 		return 0.0
 	return float(current) / float(max_val)
@@ -198,7 +198,7 @@ func get_resource_percentage(type: G_ResTypes.Type) -> float:
 
 ## Kaynak bilgisini formatla
 func get_resource_text(type: G_ResTypes.Type) -> String:
-	var info := G_ResTypes.get_info(type)
+	var info: Dictionary = G_ResTypes.get_info(type)
 	return "%s %d" % [info["icon"], get_resource(type)]
 
 

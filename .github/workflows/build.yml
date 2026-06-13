@@ -155,22 +155,22 @@ jobs:
           grep keystore export_presets.cfg
 
       - name: Export APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
-          echo "=== Checking environment ==="
-          echo "Templates folder:"
-          ls -la ~/.local/share/godot/export_templates/4.3.stable/ 2>/dev/null || echo "Templates folder missing"
-          echo ""
-          echo "Templates subfolder:"
-          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ 2>/dev/null || echo "No templates subfolder"
+          echo "=== Environment ==="
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
           echo ""
           echo "android/libs/debug:"
-          ls -la android/libs/debug/ 2>/dev/null || echo "debug folder empty"
+          ls -la android/libs/debug/ 2>/dev/null || echo "empty"
           echo ""
           echo "android/libs/release:"
-          ls -la android/libs/release/ 2>/dev/null || echo "release folder empty"
+          ls -la android/libs/release/ 2>/dev/null || echo "empty"
           echo ""
-          echo "export_presets.cfg custom_template:"
-          grep "custom_template" export_presets.cfg
+          echo "export_presets.cfg:"
+          grep -E "custom_template|keystore|gradle_build" export_presets.cfg
           echo ""
           echo "=== Running Godot export ==="
           godot --headless --export-debug "Android" FethiAlem.apk

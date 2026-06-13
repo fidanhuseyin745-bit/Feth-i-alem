@@ -104,19 +104,22 @@ jobs:
               os.makedirs('android')
           
           print("=== android folder exists:", os.path.exists('android'))
-          print("=== android contents before:", os.listdir('android')[:5] if os.path.exists('android') else [])
           
-          # Download android_source.zip directly
-          android_source_url = 'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_android_source.zip'
-          android_source_path = '/tmp/android_source.zip'
+          # Extract android_source.zip from templates
+          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          android_zip = os.path.join(templates_dir, 'templates', 'android_source.zip')
           
-          print("Downloading android_source.zip...")
-          urllib.request.urlretrieve(android_source_url, android_source_path)
-          print(f"Downloaded ({os.path.getsize(android_source_path) / 1024 / 1024:.1f} MB)")
+          if not os.path.exists(android_zip):
+              print(f"ERROR: {android_zip} not found!")
+              print("Available in templates:", os.listdir(os.path.join(templates_dir, 'templates')) if os.path.exists(os.path.join(templates_dir, 'templates')) else "missing")
+              exit(1)
+          
+          print(f"Found android_source.zip: {android_zip}")
+          print(f"Size: {os.path.getsize(android_zip) / 1024 / 1024:.1f} MB")
           
           # Extract to android/ folder
           print("Extracting to android/ folder...")
-          with zipfile.ZipFile(android_source_path, 'r') as z:
+          with zipfile.ZipFile(android_zip, 'r') as z:
               z.extractall('android/')
           print("Extraction complete!")
           

@@ -60,7 +60,7 @@ static func get_all_types() -> Array[Type]:
 	return [Type.GOLD, Type.FOOD, Type.MATERIALS, Type.WOOD, Type.IRON, Type.HORSES]
 
 ## Tür adını al
-static func get_name(type: Type) -> String:
+static func get_type_name(type: Type) -> String:
 	return get_info(type)["name"]
 
 ## Tür ikonunu al

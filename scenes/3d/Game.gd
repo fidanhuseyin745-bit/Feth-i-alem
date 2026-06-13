@@ -1,5 +1,4 @@
 extends Node3D
-class_name ConeMesh
 
 var gold = 5000
 var turn = 1

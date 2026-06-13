@@ -50,24 +50,14 @@ jobs:
           echo "Export presets configured"
           grep "keystore" export_presets.cfg
 
-      - name: ⬇️ Download Godot Executable and Templates (Manual with curl)
-        run: |
-          GODOT_EXECUTABLE_URL="https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip"
-          GODOT_TEMPLATES_URL="https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz"
-          
-          curl -L "$GODOT_EXECUTABLE_URL" -o /tmp/Godot_v4.3-stable_linux.x86_64.zip
-          curl -L "$GODOT_TEMPLATES_URL" -o /tmp/Godot_v4.3-stable_export_templates.tpz
-          
-          mkdir -p ~/.local/share/godot/templates/4.3.stable
-          unzip -o /tmp/Godot_v4.3-stable_export_templates.tpz -d ~/.local/share/godot/templates/4.3.stable
-          echo "Godot executable and export templates downloaded and installed manually"
-
-      - name: 🚀 Export Android APK (Manual)
-        run: |
-          unzip /tmp/Godot_v4.3-stable_linux.x86_64.zip -d /tmp/godot_exec
-          chmod +x /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64
-          /tmp/godot_exec/Godot_v4.3-stable_linux.x86_64 --headless --export-debug Android FethiAlem.apk
-          echo "APK Exported"
+      - name: 🚀 Export Android APK
+        uses: firebelley/godot-export@v5.2.1
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
+          relative_project_path: ./
+          archive_output: false
+          export_debug: true
 
       - name: 📊 Show APK Info
         run: |

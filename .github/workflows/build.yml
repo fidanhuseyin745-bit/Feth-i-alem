@@ -114,39 +114,27 @@ jobs:
       - name: 📝 Create Release Notes
         run: |
           BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          cat > RELEASE_NOTES.md << EOF
-# 🎮 Feth-i Alem - Build ${{ github.sha }}
-
-## 📱 APK Information
-- Build Type: Debug
-- Godot Version: 4.3
-- Build Date: $BUILD_DATE
-- Commit: ${{ github.sha }}
-- Workflow: ${{ github.workflow }}
-
-## 🎯 Game Features
-- 3D Open World Map (800x800)
-- 30+ Cities
-- 10+ Professions
-- RTS Controls
-- Mobile UI with Joystick
-- Siege System
-- Enemy AI
-
-## 📦 Files Included
-- Main Game Scripts: 14 files
-- UI Scripts: 3 files
-- 3D Scene: MainGame3D.tscn
-
-## 🛠️ How to Install
-1. Download the APK
-2. Enable "Install from unknown sources" on your Android device
-3. Install the APK
-4. Enjoy!
-
----
-Built with ❤️ using Godot 4.3
-EOF
+          {
+            echo "# 🎮 Feth-i Alem - Build ${{ github.sha }}"
+            echo ""
+            echo "## 📱 APK Information"
+            echo "- Build Type: Debug"
+            echo "- Godot Version: 4.3"
+            echo "- Build Date: $BUILD_DATE"
+            echo "- Commit: ${{ github.sha }}"
+            echo ""
+            echo "## 🎯 Game Features"
+            echo "- 3D Open World Map (800x800)"
+            echo "- 30+ Cities"
+            echo "- 10+ Professions"
+            echo "- RTS Controls"
+            echo "- Mobile UI with Joystick"
+            echo "- Siege System"
+            echo "- Enemy AI"
+            echo ""
+            echo "---"
+            echo "Built with ❤️ using Godot 4.3"
+          } > RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
       - name: 📤 Upload Release Notes

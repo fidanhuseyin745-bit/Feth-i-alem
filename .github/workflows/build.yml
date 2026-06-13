@@ -43,19 +43,28 @@ jobs:
 
       - name: Prepare Android Build
         run: |
+          # Download templates again (tmp might not persist)
+          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates2.tpz
+          
           python3 << 'PYEOF'
           import zipfile
           import os
-          import shutil
           
           # Extract android source to android folder
-          with zipfile.ZipFile('/tmp/tpz/templates/android_source.zip', 'r') as z:
-              z.extractall('android/')
+          with zipfile.ZipFile('/tmp/templates2.tpz', 'r') as z:
+              z.extractall('/tmp/tpz2')
           
-          print("Android templates extracted")
-          for root, dirs, files in os.walk('android/libs'):
-              for f in files:
-                  print(os.path.join(root, f))
+          android_zip = '/tmp/tpz2/templates/android_source.zip'
+          if os.path.exists(android_zip):
+              with zipfile.ZipFile(android_zip, 'r') as z:
+                  z.extractall('android/')
+              print("Android templates extracted successfully")
+              for root, dirs, files in os.walk('android/libs'):
+                  for f in files:
+                      print(os.path.join(root, f))
+          else:
+              print("ERROR: android_source.zip not found!")
+              print(os.listdir('/tmp/tpz2/templates'))
           PYEOF
 
       - name: Generate Keystore

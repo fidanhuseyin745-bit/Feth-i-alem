@@ -17,7 +17,7 @@ var touch_look_id = -1
 @onready var ui = $UI
 
 func _ready():
-	Engine.set_target_fps(30)
+	Engine.max_fps = 30
 	generate_terrain()
 	build_medieval_metropolis()
 	call_deferred("setup_cities")
@@ -203,7 +203,7 @@ func generate_terrain():
 			var current_x = x * step_x - terrain_size / 2
 			var current_z = z * step_z - terrain_size / 2
 
-			var height = OpenSimplexNoise.new().get_noise_2d(current_x * noise_scale, current_z * noise_scale) * height_multiplier
+			var height = FastNoiseLite.new().get_noise_2d(current_x * noise_scale, current_z * noise_scale) * height_multiplier
 			vertices.append(Vector3(current_x, height, current_z))
 			uvs.append(Vector2(float(x) / terrain_subdivisions, float(z) / terrain_subdivisions))
 			normals.append(Vector3.UP) # Placeholder, will be recalculated later

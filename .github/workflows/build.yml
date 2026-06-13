@@ -2,165 +2,71 @@ name: 🎮 Build Android APK
 
 on:
   push:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [ main, open-world-mobile-v2, feature/** ]
   pull_request:
     branches: [ main, open-world-mobile-v2 ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
 
 jobs:
   build-android:
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    
+    timeout-minutes: 45
+
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: 📱 Setup Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34 ndk;26b'
 
-      - name: 🐧 Install Godot 4.3
+      - name: Install Godot
         run: |
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
           unzip -q Godot_v4.3-stable_linux.x86_64.zip
           chmod +x Godot_v4.3-stable_linux.x86_64
           sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
-          echo "Godot version: $(godot --version)"
 
-      - name: 📦 Install Godot Export Templates
+      - name: Install Export Templates
         run: |
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
           unzip -q /tmp/templates.tpz -d /tmp/tpz
           cp -r /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
-          echo "Templates installed successfully"
-          ls ~/.local/share/godot/export_templates/4.3.stable/
 
-      - name: 🔑 Generate Debug Keystore
+      - name: Generate Keystore
         run: |
-          keytool -genkey -v \
-            -keystore /tmp/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Feth-i Alem, O=Feth-i Alem Game, C=TR"
-          echo "Keystore created"
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Feth-i Alem"
 
-      - name: ⚙️ Configure Project
+      - name: Configure Project
         run: |
-          # Remove GUT plugin reference for headless build
-          sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
-          echo "=== Editor plugins disabled ==="
-          
-          # Configure export presets with keystore
-          cat export_presets.cfg | sed \
-            -e 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' \
-            -e 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' \
-            -e 's|keystore/debug_password=""|keystore/debug_password="android"|' \
-            > export_presets.cfg.tmp && mv export_presets.cfg.tmp export_presets.cfg
-          
-          echo "Export presets configured"
-          grep "keystore" export_presets.cfg
+          sed -i 's/enabled=PackedStringArray("res:\/\/addons\/gut\/plugin.cfg")/enabled=PackedStringArray()/' project.godot
+          sed -i 's/keystore\/debug=""/keystore\/debug="\/tmp\/debug.keystore"/' export_presets.cfg
+          sed -i 's/keystore\/debug_user=""/keystore\/debug_user="androiddebugkey"/' export_presets.cfg
+          sed -i 's/keystore\/debug_password=""/keystore\/debug_password="android"/' export_presets.cfg
 
-      - name: 🚀 Export Android APK
-        id: export
+      - name: Export APK
         run: |
-          echo "Starting APK export..."
-          godot --headless --export-debug "Android" FethiAlem.apk 2>&1 | tee build.log
-          
+          godot --headless --export-debug "Android" FethiAlem.apk
+
+      - name: Check APK
+        run: |
           if [ -f "FethiAlem.apk" ]; then
-            echo "✅ APK EXPORT SUCCESSFUL!"
+            echo "APK created successfully"
             ls -lh FethiAlem.apk
           else
-            echo "❌ APK export failed"
-            echo "Build log:"
-            tail -50 build.log
+            echo "APK creation failed"
             exit 1
           fi
 
-      - name: 📊 Show APK Info
-        run: |
-          echo "=== APK Information ==="
-          file FethiAlem.apk
-          ls -lh FethiAlem.apk
-          
-          # Get APK details
-          unzip -l FethiAlem.apk 2>/dev/null | head -20
-
-      - name: 📦 Upload Debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FethiAlem-${{ github.sha }}-debug.apk
+          name: FethiAlem-${{ github.sha }}
           path: FethiAlem.apk
-          retention-days: 30
-
-      - name: 📝 Create Release Notes
-        run: |
-          BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          {
-            echo "# 🎮 Feth-i Alem - Build ${{ github.sha }}"
-            echo ""
-            echo "## 📱 APK Information"
-            echo "- Build Type: Debug"
-            echo "- Godot Version: 4.3"
-            echo "- Build Date: $BUILD_DATE"
-            echo "- Commit: ${{ github.sha }}"
-            echo ""
-            echo "## 🎯 Game Features"
-            echo "- 3D Open World Map (800x800)"
-            echo "- 30+ Cities"
-            echo "- 10+ Professions"
-            echo "- RTS Controls"
-            echo "- Mobile UI with Joystick"
-            echo "- Siege System"
-            echo "- Enemy AI"
-            echo ""
-            echo "---"
-            echo "Built with ❤️ using Godot 4.3"
-          } > RELEASE_NOTES.md
-          cat RELEASE_NOTES.md
-
-      - name: 📤 Upload Release Notes
-        uses: actions/upload-artifact@v4
-        with:
-          name: Release-Notes
-          path: RELEASE_NOTES.md
-
-  # Alternative build info
-  build-info:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: 📋 Project Summary
-        run: |
-          echo "=== Feth-i Alem Project ==="
-          echo ""
-          echo "📁 Project Size: $(du -sh . | cut -f1)"
-          echo "📄 Total Files: $(find . -type f | wc -l)"
-          echo ""
-          echo "🎮 Game Scripts:"
-          find scenes/3d/scripts -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🖥️ UI Scripts:"
-          find scenes/ui -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🗺️ Scenes:"
-          find scenes -name "*.tscn" -exec basename {} \; | sort
+          retention-days: 7

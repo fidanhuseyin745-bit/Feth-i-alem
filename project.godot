@@ -1,6 +1,6 @@
 [autoload]
-ResourceMgr="*res://autoloads/ResourceManager.gd"
-ResTypes="*res://autoloads/ResourceTypes.gd"
+ResourceMgr="*res://autoloads/ResMgr.gd"
+ResTypes="*res://autoloads/ResTypes.gd"
 
 [display]
 

@@ -1,4 +1,5 @@
-## Kaynak Türleri Enum
+class_name ResTypes
+## ResTypes - Kaynak Türleri Enum
 ## Oyun içindeki tüm kaynak türlerini tanımlar
 
 extends RefCounted

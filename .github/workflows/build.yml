@@ -39,6 +39,7 @@ jobs:
 
       - name: ⚙️ Configure Project
         run: |
+
           sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
           echo "Editor plugins disabled"
           

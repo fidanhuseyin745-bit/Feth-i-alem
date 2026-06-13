@@ -2,7 +2,7 @@ class_name ResTypes
 ## ResTypes - Kaynak Türleri Enum
 ## Oyun içindeki tüm kaynak türlerini tanımlar
 
-extends RefCounted
+extends Node
 
 enum Type {
 	GOLD = 0,

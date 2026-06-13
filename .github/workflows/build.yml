@@ -66,11 +66,26 @@ jobs:
           )
           
           # Extract to export_templates folder
-          os.makedirs(os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable'), exist_ok=True)
+          target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          os.makedirs(target_dir, exist_ok=True)
+          
           with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
-              z.extractall(os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable'))
+              # Extract so that files go to 4.3.stable/templates/
+              for info in z.infolist():
+                  # Remove 'templates/' prefix from paths
+                  if info.filename.startswith('templates/'):
+                      info.filename = info.filename[10:]  # Remove 'templates/'
+                      z.extract(info, target_dir)
+          
           print("Templates installed")
-          print(os.listdir(os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')))
+          print("Contents of 4.3.stable:")
+          for item in os.listdir(target_dir):
+              print(f"  {item}")
+          print("Contents of templates/ subfolder:")
+          templates_dir = os.path.join(target_dir, 'templates')
+          if os.path.exists(templates_dir):
+              for item in os.listdir(templates_dir):
+                  print(f"  templates/{item}")
           PYEOF
 
       - name: Prepare Android Build
@@ -78,27 +93,36 @@ jobs:
           python3 << 'PYEOF'
           import zipfile
           import os
-          import shutil
+          import urllib.request
           
-          # Templates are in ~/.local/share/godot/export_templates/4.3.stable/templates/
-          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable/templates')
-          android_zip = os.path.join(templates_dir, 'android_source.zip')
-          target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          print("=== Preparing Android Build ===")
           
-          if os.path.exists(android_zip):
-              with zipfile.ZipFile(android_zip, 'r') as z:
+          # Download android_source.zip directly
+          android_source_url = 'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_android_source.zip'
+          android_source_path = '/tmp/android_source.zip'
+          
+          print("Downloading android_source.zip...")
+          urllib.request.urlretrieve(android_source_url, android_source_path)
+          print(f"Downloaded to {android_source_path}")
+          
+          # Extract to android/ folder
+          if os.path.exists('android'):
+              print("Extracting to android/ folder...")
+              with zipfile.ZipFile(android_source_path, 'r') as z:
                   z.extractall('android/')
+              print("Extraction complete!")
               
-              # Also copy android_source.zip to target_dir (Godot expects it there)
-              shutil.copy(android_zip, os.path.join(target_dir, 'android_source.zip'))
-              
-              print("Android templates extracted successfully")
+              # Verify files
               for root, dirs, files in os.walk('android/libs'):
                   for f in files:
-                      print(os.path.join(root, f))
+                      fpath = os.path.join(root, f)
+                      size = os.path.getsize(fpath) / (1024*1024)
+                      print(f"  {fpath} ({size:.1f} MB)")
           else:
-              print(f"ERROR: {android_zip} not found!")
-              print("Available files:", os.listdir(templates_dir) if os.path.exists(templates_dir) else "folder missing")
+              print("ERROR: android/ folder not found!")
+              exit(1)
+          
+          print("=== Android Build Ready ===")
           PYEOF
 
       - name: Generate Keystore

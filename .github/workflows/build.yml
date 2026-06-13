@@ -2,175 +2,145 @@ name: 🎮 Build Android APK
 
 on:
   push:
-    branches: [ main, open-world-mobile-v2 ]
+    branches: [ main, open-world-mobile-v2, feature/** ]
   pull_request:
     branches: [ main, open-world-mobile-v2 ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
 
 jobs:
   build-android:
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
-    
+    timeout-minutes: 45
+
     steps:
-      - name: 📥 Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ☕ Setup Java 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: 📱 Setup Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          packages: 'tools platform-tools build-tools;34.0.0 platforms;android-34 ndk;26b'
 
-      - name: 🐧 Install Godot 4.3
+      - name: Install Android SDK Components
         run: |
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          unzip -q Godot_v4.3-stable_linux.x86_64.zip
-          chmod +x Godot_v4.3-stable_linux.x86_64
-          sudo mv Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot
-          echo "Godot version: $(godot --version)"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0" "ndk;25.2.9519653"
+          echo "=== Installed SDK components ==="
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --list_installed
 
-      - name: 📦 Install Godot Export Templates
+      - name: Install Godot
         run: |
-          mkdir -p ~/.local/share/godot/export_templates/4.3.stable
-          wget -q https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -O /tmp/templates.tpz
-          unzip -q /tmp/templates.tpz -d /tmp/tpz
-          cp -r /tmp/tpz/templates/* ~/.local/share/godot/export_templates/4.3.stable/
-          echo "Templates installed successfully"
-          ls ~/.local/share/godot/export_templates/4.3.stable/
-
-      - name: 🔑 Generate Debug Keystore
-        run: |
-          keytool -genkey -v \
-            -keystore /tmp/debug.keystore \
-            -alias androiddebugkey \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass android -keypass android \
-            -dname "CN=Feth-i Alem, O=Feth-i Alem Game, C=TR"
-          echo "Keystore created"
-
-      - name: ⚙️ Configure Project
-        run: |
-          # Remove GUT plugin reference for headless build
-          sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
-          echo "=== Editor plugins disabled ==="
+          python3 << 'PYEOF'
+          import urllib.request
+          import zipfile
+          import os
+          import stat
           
-          # Configure export presets with keystore
-          cat export_presets.cfg | sed \
-            -e 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' \
-            -e 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' \
-            -e 's|keystore/debug_password=""|keystore/debug_password="android"|' \
-            > export_presets.cfg.tmp && mv export_presets.cfg.tmp export_presets.cfg
+          url = 'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip'
+          urllib.request.urlretrieve(url, '/tmp/godot.zip')
           
-          echo "Export presets configured"
-          grep "keystore" export_presets.cfg
+          with zipfile.ZipFile('/tmp/godot.zip', 'r') as z:
+              z.extractall('/tmp/')
+          
+          os.chmod('/tmp/Godot_v4.3-stable_linux.x86_64', stat.S_IRWXU)
+          os.system('sudo mv /tmp/Godot_v4.3-stable_linux.x86_64 /usr/local/bin/godot')
+          print("Godot installed")
+          PYEOF
 
-      - name: 🚀 Export Android APK
-        id: export
+      - name: Install Export Templates
         run: |
-          echo "Starting APK export..."
-          godot --headless --export-debug "Android" FethiAlem.apk 2>&1 | tee build.log
+          python3 << 'PYEOF'
+          import zipfile
+          import os
+          import urllib.request
+          import shutil
           
+          # Download templates
+          print("Downloading templates...")
+          urllib.request.urlretrieve(
+              'https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz',
+              '/tmp/templates.tpz'
+          )
+          
+          # Extract to export_templates folder
+          target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          os.makedirs(target_dir, exist_ok=True)
+          
+          with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
+              z.extractall(target_dir)
+          
+          print("Templates extracted")
+          
+          # Copy android_source.zip to 4.3.stable/ (required by --install-android-build-template)
+          templates_dir = os.path.join(target_dir, 'templates')
+          android_src = os.path.join(templates_dir, 'android_source.zip')
+          android_dst = os.path.join(target_dir, 'android_source.zip')
+          
+          if os.path.exists(android_src):
+              shutil.copy(android_src, android_dst)
+              print(f"Copied android_source.zip to {android_dst}")
+          else:
+              print("ERROR: android_source.zip not found in templates!")
+              exit(1)
+          
+          print("Templates installed successfully")
+          PYEOF
+
+      - name: Generate Keystore
+        run: |
+          keytool -genkey -v -keystore /tmp/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Feth-i Alem"
+
+      - name: Configure Project
+        run: |
+          # Disable GUT plugin for headless build
+          sed -i 's|res://addons/gut/plugin.cfg||' project.godot
+          
+          # Update export presets with keystore
+          python3 << 'PYEOF'
+          with open('export_presets.cfg', 'r') as f:
+              content = f.read()
+          
+          content = content.replace('keystore/debug=""', 'keystore/debug="/tmp/debug.keystore"')
+          content = content.replace('keystore/debug_user=""', 'keystore/debug_user="androiddebugkey"')
+          content = content.replace('keystore/debug_password=""', 'keystore/debug_password="android"')
+          
+          with open('export_presets.cfg', 'w') as f:
+              f.write(content)
+          
+          print("Export presets configured")
+          PYEOF
+          
+          echo "Checking global templates:"
+          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ | head -5
+
+      - name: Export APK
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          echo "=== Running Godot export with --install-android-build-template ==="
+          godot --headless --install-android-build-template --export-debug "Android" FethiAlem.apk
+          
+          echo "=== Checking for APK ==="
+          ls -lh FethiAlem.apk 2>/dev/null || echo "No APK generated"
+
+      - name: Check APK
+        run: |
           if [ -f "FethiAlem.apk" ]; then
-            echo "✅ APK EXPORT SUCCESSFUL!"
+            echo "APK created successfully"
             ls -lh FethiAlem.apk
           else
-            echo "❌ APK export failed"
-            echo "Build log:"
-            tail -50 build.log
+            echo "APK creation failed"
             exit 1
           fi
 
-      - name: 📊 Show APK Info
-        run: |
-          echo "=== APK Information ==="
-          file FethiAlem.apk
-          ls -lh FethiAlem.apk
-          
-          # Get APK details
-          unzip -l FethiAlem.apk 2>/dev/null | head -20
-
-      - name: 📦 Upload Debug APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: FethiAlem-${{ github.sha }}-debug.apk
+          name: FethiAlem-${{ github.sha }}
           path: FethiAlem.apk
-          retention-days: 30
-
-      - name: 📝 Create Release Notes
-        run: |
-          cat > RELEASE_NOTES.md << 'EOF'
-# 🎮 Feth-i Alem - Build ${{ github.sha }}
-
-## 📱 APK Information
-- Build Type: Debug
-- Godot Version: 4.3
-- Build Date: ${{ github.event.head_commit.timestamp }}
-- Commit: ${{ github.sha }}
-
-## 🎯 Game Features
-- 3D Open World Map (800x800)
-- 30+ Cities
-- 10+ Professions
-- RTS Controls
-- Mobile UI with Joystick
-- Siege System
-- Enemy AI
-
-## 📦 Files Included
-- Main Game Scripts: 14 files
-- UI Scripts: 3 files
-- 3D Scene: MainGame3D.tscn
-
-## 🛠️ How to Install
-1. Download the APK
-2. Enable "Install from unknown sources" on your Android device
-3. Install the APK
-4. Enjoy!
-
----
-Built with ❤️ using Godot 4.3
-EOF
-          cat RELEASE_NOTES.md
-
-      - name: 📤 Upload Release Notes
-        uses: actions/upload-artifact@v4
-        with:
-          name: Release-Notes
-          path: RELEASE_NOTES.md
-
-  # Alternative build info
-  build-info:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: 📋 Project Summary
-        run: |
-          echo "=== Feth-i Alem Project ==="
-          echo ""
-          echo "📁 Project Size: $(du -sh . | cut -f1)"
-          echo "📄 Total Files: $(find . -type f | wc -l)"
-          echo ""
-          echo "🎮 Game Scripts:"
-          find scenes/3d/scripts -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🖥️ UI Scripts:"
-          find scenes/ui -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🗺️ Scenes:"
-          find scenes -name "*.tscn" -exec basename {} \; | sort
+          retention-days: 7

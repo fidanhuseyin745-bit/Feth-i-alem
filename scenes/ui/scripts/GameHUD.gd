@@ -157,7 +157,7 @@ func _show_recruit_menu():
 	menu.title = "Birim Üret"
 	menu.dialog_text = "Hangi birimi üretmek istiyorsun?\n\n🗡 Piyade (50 altın)\n🐴 Süvari (80 altın)\n🏹 Okçu (60 altın)"
 	
-	var recruit_dialog = PopupDialog.new()
+	var recruit_dialog = Popup.new()
 	recruit_dialog.popup_exclusive = true
 	
 	var vbox = VBoxContainer.new()

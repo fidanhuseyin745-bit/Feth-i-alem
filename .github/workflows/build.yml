@@ -71,10 +71,9 @@ jobs:
           python3 << 'PYEOF'
           import zipfile
           import os
-          import urllib.request
           
-          # Templates are in ~/.local/share/godot/export_templates/4.3.stable/
-          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
+          # Templates are in ~/.local/share/godot/export_templates/4.3.stable/templates/
+          templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable/templates')
           android_zip = os.path.join(templates_dir, 'android_source.zip')
           
           if os.path.exists(android_zip):

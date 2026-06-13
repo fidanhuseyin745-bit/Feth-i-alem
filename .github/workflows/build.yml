@@ -110,24 +110,3 @@ jobs:
         with:
           name: Release-Notes
           path: RELEASE_NOTES.md
-
-  build-info:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: 📋 Project Summary
-        run: |
-          echo "Feth-i Alem Project"
-          echo ""
-          echo "📁 Project Size: $(du -sh . | cut -f1)"
-          echo "📄 Total Files: $(find . -type f | wc -l)"
-          echo ""
-          echo "🎮 Game Scripts:"
-          find scenes/3d -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🖥️ UI Scripts:"
-          find scenes/ui -name "*.gd" -exec basename {} \; | sort
-          echo ""
-          echo "🗺️ Scenes:"
-          find scenes -name "*.tscn" -exec basename {} \; | sort

@@ -94,7 +94,19 @@ jobs:
 
       - name: Export APK
         run: |
-          godot --headless --export-debug "Android" FethiAlem.apk
+          echo "=== Checking android folder ==="
+          ls -la android/
+          ls -la android/libs/debug/ 2>/dev/null || echo "No debug libs"
+          ls -la android/libs/release/ 2>/dev/null || echo "No release libs"
+          
+          echo "=== Checking export_presets.cfg ==="
+          cat export_presets.cfg
+          
+          echo "=== Running Godot export ==="
+          godot --headless --export-debug "Android" FethiAlem.apk 2>&1 || true
+          
+          echo "=== Checking for APK ==="
+          ls -la FethiAlem.apk 2>/dev/null || echo "No APK generated"
 
       - name: Check APK
         run: |

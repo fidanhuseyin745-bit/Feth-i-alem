@@ -11,7 +11,7 @@ var units = []
 @onready var ui = $UI
 
 func _ready():
-	Engine.set_target_fps(30)
+	Engine.max_fps = 30
 	setup_cities()
 	spawn_units()
 	update_ui()

@@ -5,6 +5,12 @@ var turn = 1
 var cities = []
 var units = []
 
+var camera_h_speed = 0.005
+var camera_v_speed = 0.005
+var move_speed = 100.0
+var touch_look_id = -1
+@onready var camera_pivot = $CameraPivot # This will need to be added to the scene later
+
 @onready var ground = $Ground/Mesh
 @onready var cities_node = $Cities
 @onready var units_node = $Units
@@ -12,9 +18,92 @@ var units = []
 
 func _ready():
 	Engine.set_target_fps(30)
-	setup_cities()
-	spawn_units()
+	generate_terrain()
+	build_medieval_metropolis()
+	call_deferred("setup_cities")
+	call_deferred("spawn_units")
 	update_ui()
+	# Initialize camera pivot for open-world exploration
+	if camera_pivot:
+		camera_pivot.global_position = Vector3(0, 50, 0)
+	else:
+		print("Hata: camera_pivot sahneye eklenmemiş!") # Hata mesajı
+
+func build_medieval_metropolis():
+	var stone_mat = StandardMaterial3D.new()
+	stone_mat.albedo_texture = load("res://assets/textures/stone_4k.png")
+	stone_mat.uv1_scale = Vector3(0.1, 0.1, 0.1)
+	stone_mat.uv1_triplanar = true
+	
+	var wood_mat = StandardMaterial3D.new()
+	wood_mat.albedo_color = Color(0.5, 0.3, 0.1)
+	
+	# World positions with height adjustment
+	var castle_pos = [Vector2(500, 500), Vector2(-600, -400), Vector2(800, -800)]
+	for pos_2d in castle_pos:
+		var cp = Vector3(pos_2d.x, 0, pos_2d.y)
+		
+		# Find height
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.new()
+		query.from = Vector3(cp.x, 1000, cp.z)
+		query.to = Vector3(cp.x, -1000, cp.z)
+		var result = space_state.intersect_ray(query)
+		if result: cp.y = result.position.y
+
+		var castle = Node3D.new()
+		castle.position = cp
+		add_child(castle)
+		# Ana Kule
+		var keep = MeshInstance3D.new()
+		keep.mesh = BoxMesh.new(); keep.mesh.size = Vector3(60, 120, 60)
+		keep.position = Vector3(0, 60, 0); keep.material_override = stone_mat
+		castle.add_child(keep)
+		# 4 Köşe Kulesi
+		for i in range(4):
+			var tower = MeshInstance3D.new()
+			tower.mesh = CylinderMesh.new(); tower.mesh.top_radius = 20; tower.mesh.bottom_radius = 20; tower.mesh.height = 80
+			tower.position = Vector3(cos(i * PI/2) * 80, 40, sin(i * PI/2) * 80)
+			tower.material_override = stone_mat
+			castle.add_child(tower)
+		# Duvarlar
+		for i in range(4):
+			var wall = MeshInstance3D.new()
+			wall.mesh = BoxMesh.new(); wall.mesh.size = Vector3(120, 60, 20)
+			wall.position = Vector3(cos(i * PI/2 + PI/4) * 50, 30, sin(i * PI/2 + PI/4) * 50)
+			wall.rotation_degrees.y = i * 90 + 45
+			wall.material_override = stone_mat
+			castle.add_child(wall)
+
+	# Şablon 2: Küçük Köy (Village Template)
+	var village_pos = [Vector2(-500, 500), Vector2(600, -400)]
+	for pos_2d in village_pos:
+		var vp = Vector3(pos_2d.x, 0, pos_2d.y)
+		
+		# Find height
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.new()
+		query.from = Vector3(vp.x, 1000, vp.z)
+		query.to = Vector3(vp.x, -1000, vp.z)
+		var result = space_state.intersect_ray(query)
+		if result: vp.y = result.position.y
+
+		var village = Node3D.new()
+		village.position = vp
+		add_child(village)
+		for i in range(8):
+			var house = MeshInstance3D.new()
+			house.mesh = BoxMesh.new(); house.mesh.size = Vector3(20, 20, 20)
+			house.position = Vector3(randf_range(-60, 60), 10, randf_range(-60, 60))
+			house.material_override = wood_mat
+			village.add_child(house)
+			# Çatı
+			var roof = MeshInstance3D.new()
+			var r_mesh = ConeMesh.new(); r_mesh.top_radius = 0; r_mesh.bottom_radius = 15; r_mesh.height = 15
+			roof.mesh = r_mesh; roof.position = house.position + Vector3(0, 17.5, 0)
+			var r_mat = StandardMaterial3D.new(); r_mat.albedo_color = Color(0.5, 0.1, 0.1)
+			roof.material_override = r_mat
+			village.add_child(roof)
 
 func setup_cities():
 	cities = [
@@ -87,5 +176,251 @@ func show_msg(m):
 	await get_tree().create_timer(3).timeout
 	ui.get_node("Msg").visible = false
 
+func generate_terrain():
+	var terrain_size = 3000
+	var terrain_subdivisions = 100 # For a 3000x3000 terrain, 100 subdivisions means 30x30 units per quad
+	var noise_scale = 0.01
+	var height_multiplier = 200
+
+	var ground_mesh = PlaneMesh.new()
+	ground_mesh.size = Vector2(terrain_size, terrain_size)
+	ground_mesh.subdivide_width = terrain_subdivisions
+	ground_mesh.subdivide_depth = terrain_subdivisions
+
+	var array_mesh = ArrayMesh.new()
+	var arrays = []
+	arrays.resize(ArrayMesh.ARRAY_MAX)
+
+	var vertices = PackedVector3Array()
+	var uvs = PackedVector2Array()
+	var normals = PackedVector3Array()
+
+	var step_x = terrain_size / terrain_subdivisions
+	var step_z = terrain_size / terrain_subdivisions
+
+	for z in range(terrain_subdivisions + 1):
+		for x in range(terrain_subdivisions + 1):
+			var current_x = x * step_x - terrain_size / 2
+			var current_z = z * step_z - terrain_size / 2
+
+			var height = OpenSimplexNoise.new().get_noise_2d(current_x * noise_scale, current_z * noise_scale) * height_multiplier
+			vertices.append(Vector3(current_x, height, current_z))
+			uvs.append(Vector2(float(x) / terrain_subdivisions, float(z) / terrain_subdivisions))
+			normals.append(Vector3.UP) # Placeholder, will be recalculated later
+
+	for z in range(terrain_subdivisions):
+		for x in range(terrain_subdivisions):
+			var i0 = z * (terrain_subdivisions + 1) + x
+			var i1 = z * (terrain_subdivisions + 1) + x + 1
+			var i2 = (z + 1) * (terrain_subdivisions + 1) + x
+			var i3 = (z + 1) * (terrain_subdivisions + 1) + x + 1
+
+			arrays[ArrayMesh.ARRAY_INDEX] = PackedInt32Array([i0, i2, i1, i1, i2, i3])
+
+	arrays[ArrayMesh.ARRAY_VERTEX] = vertices
+	arrays[ArrayMesh.ARRAY_TEX_UV] = uvs
+	arrays[ArrayMesh.ARRAY_NORMAL] = normals
+
+	array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+
+	var terrain_mesh_instance = MeshInstance3D.new()
+	terrain_mesh_instance.mesh = array_mesh
+	terrain_mesh_instance.material_override = load("res://assets/materials/grass_4k_material.tres") # Assuming you have a material for grass
+	add_child(terrain_mesh_instance)
+
+	# Add collision for the terrain
+	var static_body = StaticBody3D.new()
+	terrain_mesh_instance.add_child(static_body)
+	var collision_shape = CollisionShape3D.new()
+	var trimesh_shape = ConcavePolygonShape3D.new()
+	trimesh_shape.set_faces(vertices)
+	collision_shape.shape = trimesh_shape
+	static_body.add_child(collision_shape)
+
+	# Placeholder for forests and other details (will be added later)
+	var forest_count = 15
+	var tree_trunk_mat = StandardMaterial3D.new()
+	tree_trunk_mat.albedo_color = Color(0.4, 0.2, 0.1)
+
+	var tree_leaves_mat = StandardMaterial3D.new()
+	tree_leaves_mat.albedo_color = Color(0.2, 0.6, 0.2)
+
+	for i in range(forest_count):
+		var tree_pos = Vector3(randf_range(-terrain_size/2, terrain_size/2), 0, randf_range(-terrain_size/2, terrain_size/2))
+
+		# Get terrain height at tree_pos
+		var ray_origin = Vector3(tree_pos.x, 1000, tree_pos.z)
+		var ray_target = Vector3(tree_pos.x, -1000, tree_pos.z)
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.new()
+		query.from = ray_origin
+		query.to = ray_target
+		var result = space_state.intersect_ray(query)
+
+		if result:
+			tree_pos.y = result.position.y
+
+		var trunk = MeshInstance3D.new()
+		trunk.mesh = CylinderMesh.new()
+		trunk.mesh.top_radius = 5
+		trunk.mesh.bottom_radius = 5
+		var trunk_height = randf_range(20, 40)
+		trunk.mesh.height = trunk_height
+		trunk.position = tree_pos + Vector3(0, trunk_height / 2, 0)
+		trunk.material_override = tree_trunk_mat
+		add_child(trunk)
+
+		var leaves = MeshInstance3D.new()
+		leaves.mesh = SphereMesh.new()
+		leaves.mesh.radius = randf_range(10, 20)
+		leaves.position = tree_pos + Vector3(0, trunk_height + leaves.mesh.radius / 2, 0)
+		leaves.material_override = tree_leaves_mat
+		add_child(leaves)
+
 func _on_end_turn_pressed():
 	end_turn()
+
+func _process(delta):
+	var dir = Vector3.ZERO
+	var cam_basis = camera_pivot.global_transform.basis
+	if Input.is_action_pressed("move_forward"): dir -= cam_basis.z
+	if Input.is_action_pressed("move_backward"): dir += cam_basis.z
+	if Input.is_action_pressed("move_left"): dir -= cam_basis.x
+	if Input.is_action_pressed("move_right"): dir += cam_basis.x
+	
+	dir.y = 0
+	if dir != Vector3.ZERO:
+		camera_pivot.global_position += dir.normalized() * move_speed * delta
+	
+	# Keep camera above terrain
+	var space_state = get_world_3d().direct_space_state
+	var query = PhysicsRayQueryParameters3D.new()
+	query.from = camera_pivot.global_position + Vector3(0, 1000, 0)
+	query.to = camera_pivot.global_position + Vector3(0, -1000, 0)
+	var result = space_state.intersect_ray(query)
+	
+	if result:
+		var target_y = result.position.y + 50.0 # Height above ground
+		camera_pivot.global_position.y = lerp(camera_pivot.global_position.y, target_y, 0.1)
+
+func _input(event):
+	# Bakış kontrolü için ekranın sağ yarısını kullan
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			# Eğer dokunma ekranın sağ yarısındaysa, bakış kontrolünü başlat
+			if event.position.x > get_viewport().size.x / 2:
+				touch_look_id = event.index
+		else:
+			# Dokunma bırakıldığında eğer bu bakış ID'siyse sıfırla
+			if event.index == touch_look_id:
+				touch_look_id = -1
+				
+	if event is InputEventScreenDrag:
+		# Sadece bakış kontrolü için atanmış dokunma ID'si ile sürükleme yapılıyorsa kamerayı döndür
+		if event.index == touch_look_id:
+			# Yatay dönüş (Dünya ekseninde Y)
+			camera_pivot.rotate_y(-event.relative.x * camera_h_speed)
+			# Dikey dönüş (Kendi ekseninde X)
+			var new_rot_x = camera_pivot.rotation.x - event.relative.y * camera_v_speed
+			camera_pivot.rotation.x = clamp(new_rot_x, deg_to_rad(-70), deg_to_rad(30))
+
+func generate_terrain():
+	var terrain_size = 3000
+	var terrain_subdivisions = 100 # For a 3000x3000 terrain, 100 subdivisions means 30x30 units per quad
+	var noise_scale = 0.01
+	var height_multiplier = 200
+
+	var ground_mesh = PlaneMesh.new()
+	ground_mesh.size = Vector2(terrain_size, terrain_size)
+	ground_mesh.subdivide_width = terrain_subdivisions
+	ground_mesh.subdivide_depth = terrain_subdivisions
+
+	var array_mesh = ArrayMesh.new()
+	var arrays = []
+	arrays.resize(ArrayMesh.ARRAY_MAX)
+
+	var vertices = PackedVector3Array()
+	var uvs = PackedVector2Array()
+	var normals = PackedVector3Array()
+
+	var step_x = terrain_size / terrain_subdivisions
+	var step_z = terrain_size / terrain_subdivisions
+
+	for z in range(terrain_subdivisions + 1):
+		for x in range(terrain_subdivisions + 1):
+			var current_x = x * step_x - terrain_size / 2
+			var current_z = z * step_z - terrain_size / 2
+
+			var height = OpenSimplexNoise.new().get_noise_2d(current_x * noise_scale, current_z * noise_scale) * height_multiplier
+			vertices.append(Vector3(current_x, height, current_z))
+			uvs.append(Vector2(float(x) / terrain_subdivisions, float(z) / terrain_subdivisions))
+			normals.append(Vector3.UP) # Placeholder, will be recalculated later
+
+	for z in range(terrain_subdivisions):
+		for x in range(terrain_subdivisions):
+			var i0 = z * (terrain_subdivisions + 1) + x
+			var i1 = z * (terrain_subdivisions + 1) + x + 1
+			var i2 = (z + 1) * (terrain_subdivisions + 1) + x
+			var i3 = (z + 1) * (terrain_subdivisions + 1) + x + 1
+
+			arrays[ArrayMesh.ARRAY_INDEX] = PackedInt32Array([i0, i2, i1, i1, i2, i3])
+
+	arrays[ArrayMesh.ARRAY_VERTEX] = vertices
+	arrays[ArrayMesh.ARRAY_TEX_UV] = uvs
+	arrays[ArrayMesh.ARRAY_NORMAL] = normals
+
+	array_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+
+	var terrain_mesh_instance = MeshInstance3D.new()
+	terrain_mesh_instance.mesh = array_mesh
+	terrain_mesh_instance.material_override = load("res://assets/materials/grass_4k_material.tres") # Assuming you have a material for grass
+	add_child(terrain_mesh_instance)
+
+	# Add collision for the terrain
+	var static_body = StaticBody3D.new()
+	terrain_mesh_instance.add_child(static_body)
+	var collision_shape = CollisionShape3D.new()
+	var trimesh_shape = ConcavePolygonShape3D.new()
+	trimesh_shape.set_faces(vertices)
+	collision_shape.shape = trimesh_shape
+	static_body.add_child(collision_shape)
+
+	# Placeholder for forests and other details (will be added later)
+	var forest_count = 15
+	var tree_trunk_mat = StandardMaterial3D.new()
+	tree_trunk_mat.albedo_color = Color(0.4, 0.2, 0.1)
+
+	var tree_leaves_mat = StandardMaterial3D.new()
+	tree_leaves_mat.albedo_color = Color(0.2, 0.6, 0.2)
+
+	for i in range(forest_count):
+		var tree_pos = Vector3(randf_range(-terrain_size/2, terrain_size/2), 0, randf_range(-terrain_size/2, terrain_size/2))
+
+		# Get terrain height at tree_pos
+		var ray_origin = Vector3(tree_pos.x, 1000, tree_pos.z)
+		var ray_target = Vector3(tree_pos.x, -1000, tree_pos.z)
+		var space_state = get_world_3d().direct_space_state
+		var query = PhysicsRayQueryParameters3D.new()
+		query.from = ray_origin
+		query.to = ray_target
+		var result = space_state.intersect_ray(query)
+
+		if result:
+			tree_pos.y = result.position.y
+
+		var trunk = MeshInstance3D.new()
+		trunk.mesh = CylinderMesh.new()
+		trunk.mesh.top_radius = 5
+		trunk.mesh.bottom_radius = 5
+		var trunk_height = randf_range(20, 40)
+		trunk.mesh.height = trunk_height
+		trunk.position = tree_pos + Vector3(0, trunk_height / 2, 0)
+		trunk.material_override = tree_trunk_mat
+		add_child(trunk)
+
+		var leaves = MeshInstance3D.new()
+		leaves.mesh = SphereMesh.new()
+		leaves.mesh.radius = randf_range(10, 20)
+		leaves.position = tree_pos + Vector3(0, trunk_height + leaves.mesh.radius / 2, 0)
+		leaves.material_override = tree_leaves_mat
+		add_child(leaves)

@@ -39,25 +39,33 @@ jobs:
 
       - name: ⚙️ Configure Project
         run: |
-
+          # Disable editor plugins that might interfere with headless export
           sed -i 's|enabled=PackedStringArray("res://addons/gut/plugin.cfg")|enabled=PackedStringArray()|' project.godot
           echo "Editor plugins disabled"
           
+          # Configure debug keystore in export_presets.cfg
           sed -i 's|keystore/debug=""|keystore/debug="/tmp/debug.keystore"|' export_presets.cfg
           sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
           sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
-          
           echo "Export presets configured"
           grep "keystore" export_presets.cfg
+
+      - name: ⬇️ Download Godot Export Templates
+        run: |
+          GODOT_TEMPLATES_URL="https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz"
+          wget -O /tmp/Godot_v4.3-stable_export_templates.tpz "$GODOT_TEMPLATES_URL"
+          mkdir -p ~/.local/share/godot/templates/4.3.stable
+          unzip -o /tmp/Godot_v4.3-stable_export_templates.tpz -d ~/.local/share/godot/templates/4.3.stable
+          echo "Godot Android export templates installed manually"
 
       - name: 🚀 Export Android APK
         uses: firebelley/godot-export@v5.2.1
         with:
           godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz
           relative_project_path: ./
           archive_output: false
           export_debug: true
+          # godot_export_templates_download_url is omitted as templates are installed manually
 
       - name: 📊 Show APK Info
         run: |

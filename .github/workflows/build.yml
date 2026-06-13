@@ -93,25 +93,21 @@ jobs:
           python3 << 'PYEOF'
           import zipfile
           import os
-          import urllib.request
           
           print("=== Current directory:", os.getcwd())
-          print("=== Contents:", os.listdir('.'))
           
           # Create android folder if not exists
           if not os.path.exists('android'):
               print("Creating android/ folder...")
               os.makedirs('android')
           
-          print("=== android folder exists:", os.path.exists('android'))
-          
-          # Extract android_source.zip from templates
+          # android_source.zip is at 4.3.stable/ (after our extraction removes 'templates/' prefix)
           templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
-          android_zip = os.path.join(templates_dir, 'templates', 'android_source.zip')
+          android_zip = os.path.join(templates_dir, 'android_source.zip')
           
           if not os.path.exists(android_zip):
               print(f"ERROR: {android_zip} not found!")
-              print("Available in templates:", os.listdir(os.path.join(templates_dir, 'templates')) if os.path.exists(os.path.join(templates_dir, 'templates')) else "missing")
+              print("Available in 4.3.stable:", os.listdir(templates_dir) if os.path.exists(templates_dir) else "missing")
               exit(1)
           
           print(f"Found android_source.zip: {android_zip}")

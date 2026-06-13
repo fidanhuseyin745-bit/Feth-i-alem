@@ -20,32 +20,32 @@ const INITIAL_HORSES := 50
 
 ## Kaynaklar (enum değeri -> miktar)
 var _resources: Dictionary = {
-	ResTypes.Type.GOLD: INITIAL_GOLD,
-	ResTypes.Type.FOOD: INITIAL_FOOD,
-	ResTypes.Type.MATERIALS: INITIAL_MATERIALS,
-	ResTypes.Type.WOOD: INITIAL_WOOD,
-	ResTypes.Type.IRON: INITIAL_IRON,
-	ResTypes.Type.HORSES: INITIAL_HORSES,
+	G_ResTypes.Type.GOLD: INITIAL_GOLD,
+	G_ResTypes.Type.FOOD: INITIAL_FOOD,
+	G_ResTypes.Type.MATERIALS: INITIAL_MATERIALS,
+	G_ResTypes.Type.WOOD: INITIAL_WOOD,
+	G_ResTypes.Type.IRON: INITIAL_IRON,
+	G_ResTypes.Type.HORSES: INITIAL_HORSES,
 }
 
 ## Maksimum kaynak limitleri
 var _max_resources: Dictionary = {
-	ResTypes.Type.GOLD: 999999,
-	ResTypes.Type.FOOD: 50000,
-	ResTypes.Type.MATERIALS: 25000,
-	ResTypes.Type.WOOD: 15000,
-	ResTypes.Type.IRON: 10000,
-	ResTypes.Type.HORSES: 5000,
+	G_ResTypes.Type.GOLD: 999999,
+	G_ResTypes.Type.FOOD: 50000,
+	G_ResTypes.Type.MATERIALS: 25000,
+	G_ResTypes.Type.WOOD: 15000,
+	G_ResTypes.Type.IRON: 10000,
+	G_ResTypes.Type.HORSES: 5000,
 }
 
 ## Kaynak toplama oranları (tur başına)
 var _production_rates: Dictionary = {
-	ResTypes.Type.GOLD: 100,
-	ResTypes.Type.FOOD: 50,
-	ResTypes.Type.MATERIALS: 25,
-	ResTypes.Type.WOOD: 15,
-	ResTypes.Type.IRON: 10,
-	ResTypes.Type.HORSES: 5,
+	G_ResTypes.Type.GOLD: 100,
+	G_ResTypes.Type.FOOD: 50,
+	G_ResTypes.Type.MATERIALS: 25,
+	G_ResTypes.Type.WOOD: 15,
+	G_ResTypes.Type.IRON: 10,
+	G_ResTypes.Type.HORSES: 5,
 }
 
 ## Önbelleklenmiş değerler (performans için)
@@ -59,7 +59,7 @@ func _ready() -> void:
 ## ── Temel Get/Set İşlemleri ─────────────────────────────────────
 
 ## Kaynak miktarını al
-func get_resource(type: ResTypes.Type) -> int:
+func get_resource(type: G_ResTypes.Type) -> int:
 	return _resources.get(type, 0)
 
 
@@ -69,7 +69,7 @@ func get_all_resources() -> Dictionary:
 
 
 ## Kaynak miktarını ayarla
-func set_resource(type: ResTypes.Type, amount: int) -> void:
+func set_resource(type: G_ResTypes.Type, amount: int) -> void:
 	var clamped := clampi(amount, 0, _max_resources.get(type, 999999))
 	var old := _resources.get(type, 0)
 	if old != clamped:
@@ -81,7 +81,7 @@ func set_resource(type: ResTypes.Type, amount: int) -> void:
 ## ── Kaynak İşlemleri ─────────────────────────────────────────────
 
 ## Kaynak ekle
-func add_resource(type: ResTypes.Type, amount: int) -> bool:
+func add_resource(type: G_ResTypes.Type, amount: int) -> bool:
 	if amount <= 0:
 		return false
 	var current := get_resource(type)
@@ -96,7 +96,7 @@ func add_resource(type: ResTypes.Type, amount: int) -> bool:
 
 
 ## Kaynak harca (yeterli ise)
-func spend_resource(type: ResTypes.Type, amount: int) -> bool:
+func spend_resource(type: G_ResTypes.Type, amount: int) -> bool:
 	if amount <= 0:
 		return true
 	var current := get_resource(type)
@@ -146,12 +146,12 @@ func process_turn_production() -> Dictionary:
 
 
 ## Üretim oranını ayarla
-func set_production_rate(type: ResTypes.Type, rate: int) -> void:
+func set_production_rate(type: G_ResTypes.Type, rate: int) -> void:
 	_production_rates[type] = maxi(0, rate)
 
 
 ## Üretim oranını al
-func get_production_rate(type: ResTypes.Type) -> int:
+func get_production_rate(type: G_ResTypes.Type) -> int:
 	return _production_rates.get(type, 0)
 
 
@@ -163,7 +163,7 @@ func get_total_resources() -> int:
 
 
 ## Yeterli kaynak var mı?
-func has_resource(type: ResTypes.Type, amount: int) -> bool:
+func has_resource(type: G_ResTypes.Type, amount: int) -> bool:
 	return get_resource(type) >= amount
 
 
@@ -176,17 +176,17 @@ func has_resources(costs: Dictionary) -> bool:
 
 
 ## Maksimum kaynak limitini al
-func get_max_resource(type: ResTypes.Type) -> int:
+func get_max_resource(type: G_ResTypes.Type) -> int:
 	return _max_resources.get(type, 999999)
 
 
 ## Maksimum limit ayarla
-func set_max_resource(type: ResTypes.Type, max_amount: int) -> void:
+func set_max_resource(type: G_ResTypes.Type, max_amount: int) -> void:
 	_max_resources[type] = maxi(0, max_amount)
 
 
 ## Kaynak yüzdesini al (0.0 - 1.0)
-func get_resource_percentage(type: ResTypes.Type) -> float:
+func get_resource_percentage(type: G_ResTypes.Type) -> float:
 	var current := get_resource(type)
 	var max_val := get_max_resource(type)
 	if max_val <= 0:
@@ -197,15 +197,15 @@ func get_resource_percentage(type: ResTypes.Type) -> float:
 ## ── Formatted Strings ────────────────────────────────────────────
 
 ## Kaynak bilgisini formatla
-func get_resource_text(type: ResTypes.Type) -> String:
-	var info := ResTypes.get_info(type)
+func get_resource_text(type: G_ResTypes.Type) -> String:
+	var info := G_ResTypes.get_info(type)
 	return "%s %d" % [info["icon"], get_resource(type)]
 
 
 ## Tüm kaynakları formatla
 func get_all_resources_text() -> String:
 	var lines := []
-	for type in ResTypes.get_all_types():
+	for type in G_ResTypes.get_all_types():
 		lines.append(get_resource_text(type))
 	return "\n".join(lines)
 
@@ -221,19 +221,19 @@ func _calculate_total() -> void:
 
 ## Kaynakları sıfırla (yeni oyun için)
 func reset() -> void:
-	for type in ResTypes.get_all_types():
+	for type in G_ResTypes.get_all_types():
 		match type:
-			ResTypes.Type.GOLD:
+			G_ResTypes.Type.GOLD:
 				_resources[type] = INITIAL_GOLD
-			ResTypes.Type.FOOD:
+			G_ResTypes.Type.FOOD:
 				_resources[type] = INITIAL_FOOD
-			ResTypes.Type.MATERIALS:
+			G_ResTypes.Type.MATERIALS:
 				_resources[type] = INITIAL_MATERIALS
-			ResTypes.Type.WOOD:
+			G_ResTypes.Type.WOOD:
 				_resources[type] = INITIAL_WOOD
-			ResTypes.Type.IRON:
+			G_ResTypes.Type.IRON:
 				_resources[type] = INITIAL_IRON
-			ResTypes.Type.HORSES:
+			G_ResTypes.Type.HORSES:
 				_resources[type] = INITIAL_HORSES
 		resources_changed.emit(type, _resources[type])
 	_calculate_total()

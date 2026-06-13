@@ -170,7 +170,7 @@ func _create_profession_panel():
 		{"id": ProfessionSystem.Profession.BLACKSMITH, "name": "Demirci", "desc": "Silah ustası", "icon": "🔨"},
 		{"id": ProfessionSystem.Profession.ARCHER, "name": "Okçu", "desc": "Uzaktan usta", "icon": "🏹"},
 		{"id": ProfessionSystem.Profession.HEALER, "name": "Şifacı", "desc": "Şifa ustası", "icon": "💊"},
-		{"id": ProfessionSystem.Profession.SCOUT, "name": "Kaşif", "desc": "Keşif ustası", "icon": "🗺️"},
+		{"id": ProfessionSystem.Profession.EXPLORER, "name": "Kaşif", "desc": "Keşif ustası", "icon": "🗺️"},
 		{"id": ProfessionSystem.Profession.KNIGHT, "name": "Şövalye", "desc": "Süvari birliği", "icon": "🛡️"},
 	]
 	

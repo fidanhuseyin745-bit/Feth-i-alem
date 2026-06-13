@@ -57,6 +57,7 @@ jobs:
           import zipfile
           import os
           import urllib.request
+          import shutil
           
           # Download templates
           print("Downloading templates...")
@@ -65,27 +66,27 @@ jobs:
               '/tmp/templates.tpz'
           )
           
-          # Extract to export_templates folder
+          # Extract to export_templates folder - KEEP the templates/ prefix structure
           target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
           os.makedirs(target_dir, exist_ok=True)
           
           with zipfile.ZipFile('/tmp/templates.tpz', 'r') as z:
-              # Extract so that files go to 4.3.stable/templates/
-              for info in z.infolist():
-                  # Remove 'templates/' prefix from paths
-                  if info.filename.startswith('templates/'):
-                      info.filename = info.filename[10:]  # Remove 'templates/'
-                      z.extract(info, target_dir)
+              z.extractall(target_dir)
           
           print("Templates installed")
           print("Contents of 4.3.stable:")
           for item in os.listdir(target_dir):
               print(f"  {item}")
-          print("Contents of templates/ subfolder:")
-          templates_dir = os.path.join(target_dir, 'templates')
-          if os.path.exists(templates_dir):
-              for item in os.listdir(templates_dir):
-                  print(f"  templates/{item}")
+          
+          # Copy android_source.zip to 4.3.stable (Godot may expect it there)
+          templates_subdir = os.path.join(target_dir, 'templates')
+          android_src = os.path.join(templates_subdir, 'android_source.zip')
+          if os.path.exists(android_src):
+              shutil.copy(android_src, os.path.join(target_dir, 'android_source.zip'))
+              print(f"Copied android_source.zip to {target_dir}")
+          else:
+              print("android_source.zip not in templates subfolder")
+              print("Available files:", os.listdir(templates_subdir) if os.path.exists(templates_subdir) else "missing")
           PYEOF
 
       - name: Prepare Android Build
@@ -101,13 +102,13 @@ jobs:
               print("Creating android/ folder...")
               os.makedirs('android')
           
-          # android_source.zip is at 4.3.stable/ (after our extraction removes 'templates/' prefix)
+          # android_source.zip is in templates/templates/
           templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
-          android_zip = os.path.join(templates_dir, 'android_source.zip')
+          android_zip = os.path.join(templates_dir, 'templates', 'android_source.zip')
           
           if not os.path.exists(android_zip):
               print(f"ERROR: {android_zip} not found!")
-              print("Available in 4.3.stable:", os.listdir(templates_dir) if os.path.exists(templates_dir) else "missing")
+              print("Available in templates:", os.listdir(os.path.join(templates_dir, 'templates')) if os.path.exists(os.path.join(templates_dir, 'templates')) else "missing")
               exit(1)
           
           print(f"Found android_source.zip: {android_zip}")
@@ -138,7 +139,7 @@ jobs:
           # Disable GUT plugin for headless build
           sed -i 's|res://addons/gut/plugin.cfg||' project.godot
           
-          # Update export presets with keystore AND custom template paths
+          # Update export presets with keystore only (NOT custom templates)
           python3 << 'PYEOF'
           import os
           
@@ -150,18 +151,19 @@ jobs:
           content = content.replace('keystore/debug_user=""', 'keystore/debug_user="androiddebugkey"')
           content = content.replace('keystore/debug_password=""', 'keystore/debug_password="android"')
           
-          # Update custom templates - point to our extracted libs
-          content = content.replace('custom_template/debug=""', 'custom_template/debug="android/libs/debug/godot-lib.template_debug.aar"')
-          content = content.replace('custom_template/release=""', 'custom_template/release="android/libs/release/godot-lib.template_release.aar"')
+          # Keep custom_template empty - use global templates
           
           with open('export_presets.cfg', 'w') as f:
               f.write(content)
           
-          print("Export presets configured with custom templates")
+          print("Export presets configured")
           PYEOF
           
-          echo "export_presets.cfg custom_template:"
-          grep custom_template export_presets.cfg
+          echo "Checking global templates:"
+          ls -la ~/.local/share/godot/export_templates/4.3.stable/templates/ | head -10
+          
+          echo "android/libs files:"
+          find android/libs -name "*.aar" -exec ls -lh {} \;
 
       - name: Export APK
         env:

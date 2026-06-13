@@ -78,14 +78,20 @@ jobs:
           python3 << 'PYEOF'
           import zipfile
           import os
+          import shutil
           
           # Templates are in ~/.local/share/godot/export_templates/4.3.stable/templates/
           templates_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable/templates')
           android_zip = os.path.join(templates_dir, 'android_source.zip')
+          target_dir = os.path.expanduser('~/.local/share/godot/export_templates/4.3.stable')
           
           if os.path.exists(android_zip):
               with zipfile.ZipFile(android_zip, 'r') as z:
                   z.extractall('android/')
+              
+              # Also copy android_source.zip to target_dir (Godot expects it there)
+              shutil.copy(android_zip, os.path.join(target_dir, 'android_source.zip'))
+              
               print("Android templates extracted successfully")
               for root, dirs, files in os.walk('android/libs'):
                   for f in files:

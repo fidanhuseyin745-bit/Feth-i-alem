@@ -57,6 +57,7 @@ jobs:
           mkdir -p ~/.local/share/godot/export_templates/4.3.stable
           curl -L https://github.com/godotengine/godot/releases/download/4.3-stable/Godot_v4.3-stable_export_templates.tpz -o /tmp/templates.tpz
           unzip -q /tmp/templates.tpz -d ~/.local/share/godot/export_templates/4.3.stable/
+          mv ~/.local/share/godot/export_templates/4.3.stable/templates/android_source.zip ~/.local/share/godot/export_templates/4.3.stable/
           echo "Godot executable and export templates downloaded and installed."
 
       - name: 🚀 Export Android APK
